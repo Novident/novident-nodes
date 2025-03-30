@@ -17,6 +17,9 @@ abstract class NodeContainer extends Node {
     required super.details,
   }) : _children = <Node>[];
 
+  /// Return if the container is expanded
+  bool get isExpanded;
+
   /// Handles node change events by propagating them to registered listeners.
   ///
   /// [change]: The change event to propagate
