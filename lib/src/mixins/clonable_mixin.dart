@@ -10,7 +10,7 @@ import 'package:meta/meta.dart';
 /// ```dart
 /// class MyClass with ClonableMixin<MyClass> {
 ///   @override
-///   MyClass clone() => MyClass(); 
+///   MyClass clone() => MyClass();
 /// }
 /// ```
 mixin ClonableMixin<T> {

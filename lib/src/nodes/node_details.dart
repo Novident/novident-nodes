@@ -177,7 +177,8 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
 
   /// Generates a hash code based on node properties.
   @override
-  int get hashCode => level.hashCode ^ value.hashCode ^ owner.hashCode ^ id.hashCode;
+  int get hashCode =>
+      level.hashCode ^ value.hashCode ^ owner.hashCode ^ id.hashCode;
 
   /// Equality comparison with another node.
   ///
