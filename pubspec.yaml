@@ -1,7 +1,10 @@
 name: novident_nodes
 description: "An internal Novident package for export common Nodes"
 version: 1.0.0
-homepage:
+documentation: https://github.com/Novident/novident-nodes/issues/
+homepage: https://github.com/Novident/novident-nodes/
+issue_tracker: https://github.com/Novident/novident-nodes/issues/
+topics: [novident, nodes, internal]
 
 environment:
   sdk: ">=3.4.3 <4.0.0"
