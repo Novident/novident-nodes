@@ -88,6 +88,7 @@ abstract class Node extends NodeNotifier with NodeVisitor, ClonableMixin<Node> {
   /// Only updates if the new owner is different from current.
   /// Automatically notifies listeners of the change.
   set owner(Node? node) {
+    if (node is! NodeContainer) return;
     if (details.owner == node) return;
     details.owner = node;
     notify();
