@@ -225,8 +225,6 @@ abstract class NodeContainer extends Node {
   /// The number of child nodes.
   int get length => _children.length;
 
-  // --- Child Access Methods ---
-
   /// Gets the child node at the specified index.
   Node elementAt(int index) {
     return _children.elementAt(index);
@@ -238,13 +236,13 @@ abstract class NodeContainer extends Node {
   }
 
   /// Checks if the collection contains the given node.
-  bool contains(Object object) {
+  bool contains(Node object) {
     return _children.contains(object);
   }
 
   /// Replaces all children with the new list.
   void clearAndOverrideState(List<Node> newChildren) {
-    clear();
+    clear(shouldNotify: false);
     addAll(newChildren);
   }
 
@@ -254,7 +252,7 @@ abstract class NodeContainer extends Node {
   }
 
   /// Finds the index of the specified node starting from given position.
-  int indexOf(Node element, int start) {
+  int indexOf(Node element, [int start = 0]) {
     return _children.indexOf(element, start);
   }
 
@@ -267,8 +265,6 @@ abstract class NodeContainer extends Node {
   Node lastWhere(bool Function(Node) callback) {
     return _children.lastWhere(callback);
   }
-
-  // --- Child Modification Methods ---
 
   /// Determines whether an operation should be treated as insertion or move.
   NodeChange _decideInsertionOrMove({
@@ -292,14 +288,14 @@ abstract class NodeContainer extends Node {
       _decideInsertionOrMove(
         to: this,
         from: element.owner,
-        newState: element.clone()..owner = this,
+        newState: element.cloneWithNewLevel(level + 1),
         oldState: element,
       ),
     );
     if (element.owner != this) {
       element.owner = this;
     }
-    _children.add(element);
+    _children.add(element.cloneWithNewLevel(level + 1));
     if (shouldNotify) notify();
   }
 
@@ -320,7 +316,7 @@ abstract class NodeContainer extends Node {
       if (child.owner != this) {
         child.owner = this;
       }
-      _children.add(child);
+      _children.add(child.cloneWithNewLevel(level + 1));
     }
     if (shouldNotify) notify();
   }
@@ -335,12 +331,15 @@ abstract class NodeContainer extends Node {
     if (element.owner != this) {
       element.owner = this;
     }
-    _children.insert(index, element);
+    _children.insert(
+      index,
+      element.cloneWithNewLevel(level + 1),
+    );
     onChange(
       _decideInsertionOrMove(
         to: this,
         from: originalElement.owner,
-        newState: element.clone(),
+        newState: element.cloneWithNewLevel(level + 1),
         oldState: originalElement,
       ),
     );
@@ -377,9 +376,11 @@ abstract class NodeContainer extends Node {
     return true;
   }
 
-  /// Creates a deep copy of this container and its children.
   @override
   NodeContainer clone();
+
+  @override
+  NodeContainer cloneWithNewLevel(int level);
 
   /// Removes and returns the last child node.
   ///
@@ -441,7 +442,7 @@ abstract class NodeContainer extends Node {
     if (newNodeState.owner != this) {
       newNodeState.owner = this;
     }
-    _children[index] = newNodeState;
+    _children[index] = newNodeState.cloneWithNewLevel(level + 1);
     notify();
   }
 
@@ -449,8 +450,6 @@ abstract class NodeContainer extends Node {
   Node operator [](int index) {
     return _children[index];
   }
-
-  // --- Lifecycle ---
 
   /// Cleans up resources and detaches all notifiers.
   @override

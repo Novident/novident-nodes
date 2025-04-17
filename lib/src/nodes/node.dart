@@ -7,12 +7,6 @@ import 'package:novident_nodes/novident_nodes.dart';
 /// This class combines notification capabilities ([NodeNotifier]), visitor pattern
 /// support ([NodeVisitor]), and cloning functionality ([ClonableMixin]).
 /// It serves as the foundation for all node types in the hierarchy.
-///
-/// Nodes maintain:
-/// - Their position in the tree (via [details])
-/// - A [LayerLink] for potential UI layer composition
-/// - Parent/child relationships
-/// - Change notification capabilities
 abstract class Node extends NodeNotifier with NodeVisitor, ClonableMixin<Node> {
   /// Contains metadata and identification information about this node
   final NodeDetails details;
@@ -20,12 +14,20 @@ abstract class Node extends NodeNotifier with NodeVisitor, ClonableMixin<Node> {
   /// Provides a link between layers in the rendering composition
   final LayerLink layer;
 
-  /// Creates a new [Node] with the given [details].
-  ///
-  /// Initializes a new [LayerLink] for rendering purposes.
   Node({
     required this.details,
   }) : layer = LayerLink();
+
+  Node.zero({
+    NodeContainer? owner,
+  })  : details = NodeDetails.zero(owner),
+        layer = LayerLink();
+
+  Node.level({
+    NodeContainer? owner,
+    int level = 0,
+  })  : details = NodeDetails(owner: owner, level: level),
+        layer = LayerLink();
 
   /// Notifies all listeners that this node has changed.
   ///
@@ -34,6 +36,16 @@ abstract class Node extends NodeNotifier with NodeVisitor, ClonableMixin<Node> {
   void notify() {
     notifyListeners();
   }
+
+  /// Returns the index of this node within its parent list.
+  ///
+  /// Returns -1 when the owner is not defined.
+  @mustCallSuper
+  int get index => owner == null
+      ? -1
+      : (owner as NodeContainer).indexWhere(
+          (Node node) => node.id == id,
+        );
 
   /// Traverses up the parent hierarchy until reaching a stopping condition.
   ///
@@ -87,6 +99,13 @@ abstract class Node extends NodeNotifier with NodeVisitor, ClonableMixin<Node> {
   /// Returns a new node instance with the specified modifications
   @mustBeOverridden
   Node copyWith({NodeDetails? details});
+
+  /// Creates a copy of this node but changing the level by the
+  /// given passed.
+  ///
+  /// Usually used when a [Node] is inserted or moved into the Nodes Tree.
+  @mustBeOverridden
+  Node cloneWithNewLevel(int level);
 
   /// Equality comparison between nodes.
   ///
