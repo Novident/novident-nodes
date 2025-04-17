@@ -15,7 +15,7 @@ class DirectoryNode extends NodeContainer {
     for (final Node child in super.children) {
       child.owner = this;
     }
-    redepthChildren(checkFirst: true);
+    redepthChildren();
   }
 
   @override
@@ -27,32 +27,19 @@ class DirectoryNode extends NodeContainer {
   }
 
   /// adjust the depth level of the children
-  void redepthChildren({int? currentLevel, bool checkFirst = false}) {
+  void redepthChildren({int? alternativeLevel}) {
     void redepth(List<Node> unformattedChildren, int currentLevel) {
       for (int i = 0; i < unformattedChildren.length; i++) {
         final Node node = unformattedChildren.elementAt(i);
-        unformattedChildren[i] = node.cloneWithNewLevel(
-          currentLevel + 1,
-        );
+        final int childLevel = currentLevel + 1;
+        unformattedChildren[i] = node.cloneWithNewLevel(childLevel);
         if (node is NodeContainer && node.isNotEmpty) {
-          redepth(node.children, currentLevel + 1);
+          redepth(node.children, childLevel);
         }
       }
     }
 
-    bool ignoreRedepth = false;
-    if (checkFirst) {
-      final int childLevel = level + 1;
-      for (final Node child in children) {
-        if (child.level != childLevel) {
-          ignoreRedepth = true;
-          break;
-        }
-      }
-    }
-    if (ignoreRedepth) return;
-
-    redepth(children, currentLevel ?? level);
+    redepth(children, alternativeLevel ?? level);
     notifyListeners();
   }
 
@@ -120,9 +107,8 @@ class DirectoryNode extends NodeContainer {
   @override
   DirectoryNode cloneWithNewLevel(int level) {
     return copyWith(
-      details: details.cloneWithNewLevel(
-        level,
-      ),
-    );
+        details: details.cloneWithNewLevel(
+      level,
+    ));
   }
 }
