@@ -120,6 +120,7 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
     return <String, dynamic>{
       'level': level,
       'id': id,
+      'owner': owner?.id,
       'value': value,
     };
   }
