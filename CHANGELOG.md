@@ -1,3 +1,7 @@
+## 1.0.3
+
+* Feat: improved updating, notifying and moving Nodes API [#2](https://github.com/Novident/novident-nodes/pull/2)
+
 ## 1.0.2
 
 * Chore: added tests for nodes.
