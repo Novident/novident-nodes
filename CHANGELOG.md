@@ -1,3 +1,7 @@
+## 1.0.4
+
+* Fix: `propagate` property in `notify` method is `true` by default.
+
 ## 1.0.3
 
 * Feat: improved updating, notifying and moving Nodes API [#2](https://github.com/Novident/novident-nodes/pull/2)
