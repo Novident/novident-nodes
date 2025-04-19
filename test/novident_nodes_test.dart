@@ -95,6 +95,30 @@ void main() {
     expect(node.first.castToDir.first.castToFile.id, 'test 3');
   });
 
+  test('should notify until its parent', () {
+    final DirectoryNode node = DirectoryNode(
+      details: NodeDetails.zero(),
+      children: <Node>[
+        FileNode(
+          details: NodeDetails.byId(id: 'test', level: 1),
+          content: '',
+          name: 'File 1',
+        ),
+      ],
+      name: 'Dir',
+    );
+    expect(node.first.owner, node);
+    final StringBuffer buffer = StringBuffer();
+    node.addListener(() {
+      buffer.write('Directory');
+    });
+    node.first.addListener(() {
+      buffer.writeln('${' ' * (node.first.level + 1)}File 1');
+    });
+    node.first.notify(propagate: true);
+    expect(buffer.toString().split('\n').reversed.join('\n'), 'Directory\n  File 1');
+  });
+
   test('should return a correct json', () {
     // The level will be updated automatically during Node build
     final DirectoryNode node = DirectoryNode(

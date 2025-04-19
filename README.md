@@ -14,6 +14,28 @@ The nodes within this package have a specific behavior, and they are capable of 
 > [!NOTE]
 > This doesn't mean we have to perform certain validations, as some errors could occur.
 
+> [!TIP]
+> When you want to update the state of a Node, you can use the `notify()` or `notify(propagate: true)` method.
+>
+> * `propagate`: determines if the Node will notify its parent Node about its changes.
+>
+> For example, when using **Drag and Drop** features, you will need to update all Nodes up to the Main Node that contains your node, since moving nodes requires removing and inserting them in different positions and under different parents:
+>
+> ```dart
+> // ... perform your operations here
+> // first, notify the root that this Node has changed
+> oldParentOfNode.notify(propagate: true);
+> // then, notify the root that this Node has changed too 
+> // and contains the new node
+> newParentOfNode.notify(propagate: true);
+> ```
+>
+> However, if you only want to update a specific part that doesn't require updating multiple Nodes simultaneously, you can simply use: 
+>
+> ```dart
+> yourNode.notify();
+> ```
+
 In the case of Novident, these packages have multiple uses in different packages:
 
 - **[Novident-corkboard](https://github.com/Novident/novident-corkboard):** Nodes are used to display nodes in different ways in a customized way, such as creating index cards that can have a defined shape or a defined point on the screen, or even having what we call freeform node mode, which allows us to move these cards to any position we want.
