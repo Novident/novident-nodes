@@ -191,6 +191,9 @@ abstract class NodeContainer extends Node {
     return false;
   }
 
+  /// Gets the list of direct child nodes.
+  List<Node> get children => _children;
+
   /// Gets the first child node.
   /// Throws if there are no children.
   Node get first => _children.first;
