@@ -315,7 +315,7 @@ abstract class NodeContainer extends Node {
     if (shouldNotify) notify(propagate: propagateNotifications);
   }
 
-  /// Adds a node to the end of children list.
+  /// Move the [Node] passed to a new parent.
   ///
   /// * [node]: The [Node] that you want to move
   /// * [to]: The [NodeContainer] where the [Node] will be moved
@@ -353,7 +353,7 @@ abstract class NodeContainer extends Node {
     return true;
   }
 
-  /// Adds a node to the end of children list.
+  /// Find the [Node] by the [id] passed and Move it to a new parent.
   ///
   /// * [id]: The identifier of the [Node] that you want to move
   /// * [to]: The [NodeContainer] where the [Node] will be moved
