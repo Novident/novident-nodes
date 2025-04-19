@@ -35,7 +35,7 @@ abstract class Node extends NodeNotifier with NodeVisitor, ClonableMixin<Node> {
   /// should trigger updates in dependent systems.
   void notify({bool propagate = true}) {
     notifyListeners();
-    if(propagate) {
+    if (propagate) {
       owner?.notify(propagate: propagate);
     }
   }

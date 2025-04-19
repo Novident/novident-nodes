@@ -92,7 +92,8 @@ abstract class NodeContainer extends Node {
   /// [reversed]: Whether to traverse in reverse order
   /// Returns the first matching node or null if none found
   @override
-  Node? visitAllNodes({required Predicate shouldGetNode, bool reversed = false}) {
+  Node? visitAllNodes(
+      {required Predicate shouldGetNode, bool reversed = false}) {
     for (int i = reversed ? length - 1 : 0;
         reversed ? i >= 0 : i < length;
         reversed ? i-- : i++) {
@@ -100,7 +101,8 @@ abstract class NodeContainer extends Node {
       if (shouldGetNode(node)) {
         return node;
       }
-      final Node? foundedNode = node.visitAllNodes(shouldGetNode: shouldGetNode);
+      final Node? foundedNode =
+          node.visitAllNodes(shouldGetNode: shouldGetNode);
       if (foundedNode != null) return foundedNode;
     }
     return null;
@@ -543,7 +545,8 @@ abstract class NodeContainer extends Node {
     bool propagateNotifications = false,
     bool insertIfNotExist = true,
   }) {
-    final int index = _children.indexWhere((Node node) => node.id == newNodeState.id);
+    final int index =
+        _children.indexWhere((Node node) => node.id == newNodeState.id);
     if (index < 0 && !insertIfNotExist) {
       return;
     } else if (index < 0 && insertIfNotExist) {
@@ -588,7 +591,8 @@ abstract class NodeContainer extends Node {
   }
 
   /// Updates the child node at the specified index.
-  void updateAt(int index, Node newNodeState, {bool propagateNotifications = false}) {
+  void updateAt(int index, Node newNodeState,
+      {bool propagateNotifications = false}) {
     if (index < 0) return;
     onChange(
       NodeUpdate(

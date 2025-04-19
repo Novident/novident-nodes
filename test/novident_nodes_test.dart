@@ -116,7 +116,8 @@ void main() {
       buffer.writeln('${' ' * (node.first.level + 1)}File 1');
     });
     node.first.notify(propagate: true);
-    expect(buffer.toString().split('\n').reversed.join('\n'), 'Directory\n  File 1');
+    expect(buffer.toString().split('\n').reversed.join('\n'),
+        'Directory\n  File 1');
   });
 
   test('should return a correct json', () {
