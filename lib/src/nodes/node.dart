@@ -58,9 +58,9 @@ abstract class Node extends NodeNotifier with NodeVisitor, ClonableMixin<Node> {
   /// Returns the highest parent node that satisfies the conditions,
   /// or this node if no parent exists or stop condition is met.
   @mustCallSuper
-  Node? jumpToParent({bool Function(Node node)? stopAt}) {
+  NodeContainer? jumpToParent({bool Function(Node node)? stopAt}) {
     if (owner == null || (stopAt?.call(this) ?? false)) {
-      return this;
+      return this is NodeContainer ? this as NodeContainer : null;
     }
     return owner!.jumpToParent();
   }
