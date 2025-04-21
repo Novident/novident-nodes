@@ -335,7 +335,7 @@ abstract class NodeContainer extends Node {
     bool propagate = true,
     bool ensureDeletion = true,
   }) {
-    if (index < 0) return false;
+    if (node.index < 0 || insertIndex != null && insertIndex < 0) return false;
     removeWhere((Node n) => n.id == node.id, shouldNotify: false);
     if (ensureDeletion) {
       final Node? removed = firstWhereOrNull((Node n) => n.id == node.id);
