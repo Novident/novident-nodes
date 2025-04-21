@@ -1,3 +1,8 @@
+## 1.0.5
+
+* Fix: `moveNode()` never move node since is comparing parent index instead Node child index.
+* Chore(BREAKING CHANGES): changed return Node type in `jumpToParent()` method to be `NodeContainer` type.
+
 ## 1.0.4
 
 * Fix: `propagate` property in `notify` method is `true` by default.
