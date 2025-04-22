@@ -15,7 +15,7 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
   final Object? value;
 
   /// Private reference to the owning/parent node
-  Node? _owner;
+  NodeContainer? _owner;
 
   /// Main constructor for creating a [NodeDetails] instance.
   ///
@@ -27,7 +27,7 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
   NodeDetails({
     required this.level,
     this.value,
-    Node? owner,
+    NodeContainer? owner,
   })  : _owner = owner,
         id = IdGenerator.gen();
 
@@ -43,7 +43,7 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
     required this.level,
     required this.id,
     this.value,
-    Node? owner,
+    NodeContainer? owner,
   }) : _owner = owner;
 
   /// Alternative constructor that accepts an explicit ID.
@@ -56,7 +56,7 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
     required this.level,
     required this.id,
     this.value,
-    Node? owner,
+    NodeContainer? owner,
   }) : _owner = owner;
 
   /// Returns true if this node has no owner/parent
@@ -66,11 +66,11 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
   bool get hasOwner => owner != null;
 
   /// Gets the owner/parent node of this node
-  Node? get owner => _owner;
+  NodeContainer? get owner => _owner;
 
   /// Sets the owner/parent node of this node.
   /// Only updates if the new owner is different from current.
-  set owner(Node? node) {
+  set owner(NodeContainer? node) {
     if (_owner == node) return;
     _owner = node;
   }
@@ -91,7 +91,8 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
   /// [owner]: Optional new owner reference
   /// [value]: Optional new associated value
   /// Returns a new [NodeDetails] instance with specified overrides
-  NodeDetails copyWith({int? level, String? id, Node? owner, Object? value}) {
+  NodeDetails copyWith(
+      {int? level, String? id, NodeContainer? owner, Object? value}) {
     return NodeDetails.byId(
       level: level ?? this.level,
       id: id ?? this.id,
@@ -109,7 +110,7 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
       level: json['level'] as int,
       value: json['value'] as Object?,
       id: json['id'] as String,
-      owner: json['owner'] as Node?,
+      owner: json['owner'] as NodeContainer?,
     );
   }
 
@@ -130,7 +131,7 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
   /// [id]: Optional explicit ID (generates one if not provided)
   /// [owner]: Optional owner reference
   /// Returns a new root-level (level 0) [NodeDetails] instance
-  factory NodeDetails.base([String? id, Node? owner]) {
+  factory NodeDetails.base([String? id, NodeContainer? owner]) {
     return NodeDetails.byId(
       level: 0,
       id: id ?? IdGenerator.gen(version: 4),
@@ -143,7 +144,7 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
   /// [level]: Optional level value (defaults to 0)
   /// [owner]: Optional owner reference
   /// Returns a new [NodeDetails] instance at specified level
-  factory NodeDetails.withLevel([int? level, Node? owner]) {
+  factory NodeDetails.withLevel([int? level, NodeContainer? owner]) {
     level ??= 0;
     return NodeDetails.byId(
       level: level,
@@ -156,7 +157,7 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
   ///
   /// [owner]: Optional owner reference
   /// Returns a new root-level (level 0) [NodeDetails] instance
-  factory NodeDetails.zero([Node? owner]) {
+  factory NodeDetails.zero([NodeContainer? owner]) {
     return NodeDetails.byId(
       level: 0,
       id: IdGenerator.gen(version: 4),

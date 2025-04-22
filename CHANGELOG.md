@@ -1,3 +1,14 @@
+## 1.0.6
+
+* Feat: added `verticalMove()` method, to allow moving Nodes between the Tree.
+* Feat: added `NodeCollector` mixin to allow collecting `Nodes`.
+* Feat: added static methods `canMoveTo` and `verticalMove` into `Node` class.
+* Fix: `jumpToParent` isn't passing `stopAt` property to its owners.
+* Chore: removed unnecessary `mustCallSuper` annotation for `owner`, `id`, `level`, `jumpToParent`, and `index` getters.
+* Chore: added `mustCallSuper` to `notify()` method.
+* Chore: deprecated `atRoot` getter and replaced by `isAtRootLevel`.
+* Chore: implemented default functions for `NodeVisitor` and `NodeCollector` into `Node` to avoid unnecessary implementation in leaf nodes. Only `NodeContainer` overrides the implementation to include its `children`. 
+
 ## 1.0.5
 
 * Fix: `moveNode()` never move node since is comparing parent index instead Node child index.

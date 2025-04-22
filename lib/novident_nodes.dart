@@ -11,4 +11,5 @@ export 'src/nodes/node_details.dart';
 export 'src/nodes/node_container.dart';
 // mixins
 export 'src/mixins/node_visitor_mixin.dart';
+export 'src/mixins/node_collector_mixin.dart';
 export 'src/mixins/clonable_mixin.dart';

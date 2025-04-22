@@ -86,11 +86,24 @@ abstract class NodeContainer extends Node {
     return nodes;
   }
 
-  /// Visits all nodes in the hierarchy until finding one that matches the condition.
-  ///
-  /// [shouldGetNode]: Predicate to determine if a node matches
-  /// [reversed]: Whether to traverse in reverse order
-  /// Returns the first matching node or null if none found
+  @override
+  Iterable<Node> collectNodes(
+      {required Predicate shouldGetNode, bool deep = false}) {
+    final List<Node> nodes = <Node>[];
+    for (final Node child in children) {
+      if (shouldGetNode(child)) {
+        nodes.add(child);
+      } else if (deep) {
+        final Iterable<Node> collectedNodes = child.collectNodes(
+          shouldGetNode: shouldGetNode,
+          deep: deep,
+        );
+        nodes.addAll(collectedNodes);
+      }
+    }
+    return <Node>[...nodes];
+  }
+
   @override
   Node? visitAllNodes(
       {required Predicate shouldGetNode, bool reversed = false}) {
@@ -108,11 +121,6 @@ abstract class NodeContainer extends Node {
     return null;
   }
 
-  /// Visits direct child nodes until finding one that matches the condition.
-  ///
-  /// [shouldGetNode]: Predicate to determine if a node matches
-  /// [reversed]: Whether to traverse in reverse order
-  /// Returns the first matching child or null if none found
   @override
   Node? visitNode({required Predicate shouldGetNode, bool reversed = false}) {
     for (int i = reversed ? length - 1 : 0;
@@ -126,58 +134,39 @@ abstract class NodeContainer extends Node {
     return null;
   }
 
-  /// Counts all nodes in the hierarchy that match the condition.
-  ///
-  /// [countNode]: Predicate to test nodes against
-  /// Returns the total count of matching nodes
   @override
   int countAllNodes({required Predicate countNode}) {
     int count = 0;
     for (int i = 0; i < length; i++) {
-      final Node node = elementAt(i);
-      if (countNode(node)) {
-        count++;
-      }
-      count += node.countAllNodes(countNode: countNode);
+      count += elementAt(i).countAllNodes(
+        countNode: countNode,
+      );
     }
     return count;
   }
 
-  /// Counts direct child nodes that match the condition.
-  ///
-  /// [countNode]: Predicate to test nodes against
-  /// Returns the count of matching direct children
   @override
   int countNodes({required Predicate countNode}) {
     int count = 0;
     for (int i = 0; i < length; i++) {
       final Node node = elementAt(i);
-      if (countNode(node)) {
-        count++;
-      }
+      count += node.countNodes(countNode: countNode);
     }
     return count;
   }
 
-  /// Checks if a node with the given ID exists among direct children.
-  ///
-  /// [nodeId]: The ID to search for
-  /// Returns true if a direct child has the specified ID
   @override
   bool exist(String nodeId) {
     for (int i = 0; i < length; i++) {
-      if (elementAt(i).details.id == nodeId) return true;
+      if (elementAt(i).exist(
+        nodeId,
+      )) {
+        return true;
+      }
     }
     return false;
   }
 
-  /// Recursively checks if a node with the given ID exists in the hierarchy.
-  ///
-  /// Searches through all descendants.
-  /// [nodeId]: The ID to search for
-  /// Returns true if any node in the hierarchy has the specified ID
-  ///
-  /// Note: This operation's performance depends on the tree depth.
   @override
   bool deepExist(String nodeId) {
     for (int i = 0; i < length; i++) {
@@ -296,30 +285,6 @@ abstract class NodeContainer extends Node {
     return NodeMoveChange(to: to, from: from, newState: newState);
   }
 
-  /// Adds a node to the end of children list.
-  ///
-  /// [element]: The node to add
-  /// [shouldNotify]: Whether to trigger change notifications
-  void add(
-    Node element, {
-    bool shouldNotify = true,
-    bool propagateNotifications = false,
-  }) {
-    onChange(
-      _decideInsertionOrMove(
-        to: this,
-        from: element.owner,
-        newState: element.cloneWithNewLevel(level + 1),
-        oldState: element,
-      ),
-    );
-    if (element.owner != this) {
-      element.owner = this;
-    }
-    _children.add(element.cloneWithNewLevel(level + 1));
-    if (shouldNotify) notify(propagate: propagateNotifications);
-  }
-
   /// Move the [Node] passed to a new parent.
   ///
   /// * [node]: The [Node] that you want to move
@@ -327,6 +292,7 @@ abstract class NodeContainer extends Node {
   /// * [insertIndex]: The index where will be inserted the [Node] into the target passed
   /// * [shouldNotify]: Whether to trigger change notifications
   /// * [ensureDeletion]: determines if the method will ensure that the [Node] passed is removed from the current [NodeContainer]
+  /// * [followStandardValidations]: Whether this will use [`canMoveTo`] to avoid not valid insertions
   bool moveNode(
     Node node,
     NodeContainer to, {
@@ -334,7 +300,13 @@ abstract class NodeContainer extends Node {
     bool shouldNotify = true,
     bool propagate = true,
     bool ensureDeletion = true,
+    bool followStandardValidations = true,
   }) {
+    if (followStandardValidations) {
+      if (!Node.canMoveTo(node: node, target: to)) {
+        return false;
+      }
+    }
     if (node.index < 0 || insertIndex != null && insertIndex < 0) return false;
     removeWhere((Node n) => n.id == node.id, shouldNotify: false);
     if (ensureDeletion) {
@@ -364,16 +336,23 @@ abstract class NodeContainer extends Node {
   /// * [to]: The [NodeContainer] where the [Node] will be moved
   /// * [insertIndex]: The index where will be inserted the [Node] into the target passed
   /// * [shouldNotify]: Whether to trigger change notifications
+  /// * [followStandardValidations]: Whether this will use [`canMoveTo`] to avoid not valid insertions
   bool moveNodeById(
     String id,
     NodeContainer to, {
     int? insertIndex,
     bool shouldNotify = true,
     bool propagate = true,
+    bool followStandardValidations = true,
   }) {
     final int index = _children.indexWhere((Node node) => node.id == id);
     if (index < 0) return false;
     final Node node = elementAt(index);
+    if (followStandardValidations) {
+      if (!Node.canMoveTo(node: node, target: to)) {
+        return false;
+      }
+    }
     final bool removed = remove(node, shouldNotify: false);
     if (!removed) {
       throw StateError(
@@ -391,6 +370,37 @@ abstract class NodeContainer extends Node {
       notify(propagate: propagate);
     }
     return true;
+  }
+
+  /// Adds a node to the end of children list.
+  ///
+  /// - [element]: The node to add
+  /// - [shouldNotify]: Whether to trigger change notifications
+  /// - [followStandardValidations]: Whether this will use [`canMoveTo`] to avoid not valid insertions
+  void add(
+    Node element, {
+    bool shouldNotify = true,
+    bool propagateNotifications = false,
+    bool followStandardValidations = true,
+  }) {
+    if (followStandardValidations) {
+      if (!Node.canMoveTo(node: element, target: this)) {
+        return;
+      }
+    }
+    onChange(
+      _decideInsertionOrMove(
+        to: this,
+        from: element.owner,
+        newState: element.cloneWithNewLevel(level + 1),
+        oldState: element,
+      ),
+    );
+    if (element.owner != this) {
+      element.owner = this;
+    }
+    _children.add(element.cloneWithNewLevel(level + 1));
+    if (shouldNotify) notify(propagate: propagateNotifications);
   }
 
   /// Adds multiple nodes to the end of children list.
@@ -421,15 +431,23 @@ abstract class NodeContainer extends Node {
 
   /// Inserts a node at the specified position.
   ///
-  /// [index]: The position to insert at
-  /// [element]: The node to insert
-  /// [shouldNotify]: Whether to trigger change notifications
+  /// - [index]: The position to insert at
+  /// - [element]: The node to insert
+  /// - [shouldNotify]: Whether to trigger change notifications
+  /// - [followStandardValidations]: Whether this will use [`canMoveTo`] to avoid not valid insertions
+  ///
   void insert(
     int index,
     Node element, {
     bool shouldNotify = true,
     bool propagateNotifications = false,
+    bool followStandardValidations = true,
   }) {
+    if (followStandardValidations) {
+      if (!Node.canMoveTo(node: element, target: this)) {
+        return;
+      }
+    }
     final Node originalElement = element.clone();
     if (element.owner != this) {
       element.owner = this;
@@ -473,7 +491,7 @@ abstract class NodeContainer extends Node {
     onChange(
       NodeDeletion(
         originalPosition: index,
-        sourceOwner: jumpToParent(stopAt: (Node node) => node.atRoot)!,
+        sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel)!,
         inNode: clone(),
         newState: element,
         oldState: element,
@@ -495,7 +513,7 @@ abstract class NodeContainer extends Node {
     onChange(
       NodeDeletion(
         originalPosition: _children.length,
-        sourceOwner: jumpToParent(stopAt: (Node node) => node.atRoot)!,
+        sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel)!,
         inNode: clone(),
         newState: value.clone(),
         oldState: value.clone(),
@@ -532,7 +550,7 @@ abstract class NodeContainer extends Node {
     onChange(
       NodeDeletion(
         originalPosition: index,
-        sourceOwner: jumpToParent(stopAt: (Node node) => node.atRoot)!,
+        sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel)!,
         inNode: clone(),
         newState: value.clone(),
         oldState: value.clone(),

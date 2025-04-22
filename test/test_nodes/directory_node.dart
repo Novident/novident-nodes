@@ -79,7 +79,10 @@ class DirectoryNode extends NodeContainer {
   }
 
   @override
-  bool operator ==(covariant DirectoryNode other) {
+  bool operator ==(Object other) {
+    if (other is! DirectoryNode) {
+      return false;
+    }
     return listEquals(children, other.children) &&
         name == other.name &&
         details == other.details &&
