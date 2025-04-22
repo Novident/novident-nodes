@@ -1,4 +1,4 @@
-## 1.0.6
+## 1.1.0
 
 * Feat: added `verticalMove()` method, to allow moving Nodes between the Tree.
 * Feat: added `NodeCollector` mixin to allow collecting `Nodes`.
