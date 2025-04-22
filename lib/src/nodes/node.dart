@@ -75,7 +75,6 @@ abstract class Node extends NodeNotifier
   }) {
     // 1. Basic invalid cases
     if (node.id == target.id) return false; // Can't move to self
-    if (target.owner == null) return false; // Target must have a parent
 
     // 2. Prevent moving a container into its own descendants
     if (node is NodeContainer) {

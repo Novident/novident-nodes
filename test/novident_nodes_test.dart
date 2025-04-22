@@ -24,6 +24,40 @@ void main() {
     expect(node.first.level, 1);
   });
 
+  test('should return false always', () {
+    final DirectoryNode node = DirectoryNode(
+      details: NodeDetails.zero(),
+      children: <Node>[
+        FileNode(
+          details: NodeDetails.byId(id: 'test', level: 0),
+          content: '',
+          name: 'File 1',
+        ),
+        DirectoryNode(
+          details: NodeDetails.byId(id: 'test 2', level: 0),
+          children: <Node>[
+            FileNode(
+              details: NodeDetails.byId(id: 'test 3', level: 0),
+              content: '',
+              name: 'File 2',
+            ),
+          ],
+          name: 'Dir 2',
+        ),
+      ],
+      name: 'Dir',
+    );
+    // cannot reinsert a child node into its parent
+    expect(Node.canMoveTo(node: node.first, target: node), isFalse);
+    // cannot be moved into a leaf node
+    expect(
+        Node.canMoveTo(
+            node: node.last.castToContainer.last, target: node.first),
+        isFalse);
+    // cannot move a node into its own children
+    expect(Node.canMoveTo(node: node, target: node.last), isFalse);
+  });
+
   test('should move first child node into the last child one', () {
     final DirectoryNode node = DirectoryNode(
       details: NodeDetails.zero(),
