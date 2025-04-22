@@ -64,6 +64,14 @@ if (Node.canMoveTo(
   // Determines whether to check if a child is 
   // attempting to reinsert itself into its parent
   inside: true,   
+  // use this when you will swap the position between 
+  // two nodes that are in the same owner
+  //
+  // we use it, since, child reinserting into its parent checking
+  // will be executed, and we need to notify to the method this
+  // is a swap operation (so, it's normal that owner of 
+  // the sourceNode and target are the same one)
+  isSwapMove: true, 
 )) {
   // Safe to proceed with move operation
   Node.moveTo(node: sourceNode, newOwner: targetNode);
@@ -75,8 +83,6 @@ if (Node.canMoveTo(
 1. Always validate with `canMoveTo()` before `moveTo()`.
 2. Use `notify(propagate: true)` only when you need update different parts of the Tree at the same time.
 3. Prefer `jumpToParent()` over manual owner traversal.
-4. Prefer using `followStandardValidations` with `true` in the methods that are responsible for inserting nodes.
-
 
 ## Packages that uses **Novident Nodes** package:
 

@@ -24,6 +24,85 @@ void main() {
     expect(node.first.level, 1);
   });
 
+  test('should swap children', () {
+    final DirectoryNode node = DirectoryNode(
+      details: NodeDetails.zero(),
+      children: <Node>[
+        FileNode(
+          details: NodeDetails.byId(id: 'test', level: 0),
+          content: '',
+          name: 'File 1',
+        ),
+        DirectoryNode(
+          details: NodeDetails.byId(id: 'test 2', level: 0),
+          children: <Node>[
+            FileNode(
+              details: NodeDetails.byId(id: 'test 3', level: 0),
+              content: '',
+              name: 'File 2',
+            ),
+          ],
+          name: 'Dir 2',
+        ),
+      ],
+      name: 'Dir',
+    );
+    bool moved = false;
+    if (Node.canMoveTo(
+      node: node.last,
+      target: node,
+      inside: true,
+      isSwapMove: true, // avoid crash with same reinserting child check
+    )) {
+      expect(node.first.id, 'test');
+      expect(node.last.id, 'test 2');
+      node.last.verticalMove(allowMoveToAncestor: true, down: false);
+      expect(node.first.id, 'test 2');
+      expect(node.last.id, 'test');
+      moved = true;
+    }
+    expect(moved, isTrue);
+  });
+
+  test('shouldn\'t insert a node into a leaf node', () {
+    final DirectoryNode node = DirectoryNode(
+      details: NodeDetails.zero(),
+      children: <Node>[
+        DirectoryNode(
+          details: NodeDetails.byId(id: 'test 2', level: 0),
+          children: <Node>[
+            FileNode(
+              details: NodeDetails.byId(id: 'test 3', level: 0),
+              content: '',
+              name: 'File 2',
+            ),
+          ],
+          name: 'Dir 2',
+        ),
+        FileNode(
+          details: NodeDetails.byId(id: 'test', level: 0),
+          content: '',
+          name: 'File 1',
+        ),
+      ],
+      name: 'Dir',
+    );
+    bool moved = false;
+    // should maintain moved in false
+    // since we can't move a node inside
+    // a leaf
+    if (Node.canMoveTo(
+      node: node.first,
+      target: node.last,
+      inside: true,
+      isSwapMove: true,
+    )) {
+      moved = Node.moveTo(
+          node: node.first, newOwner: node.last.castToContainer, index: 1);
+    }
+    expect(moved, isFalse);
+  });
+
   test('should return false always', () {
     final DirectoryNode node = DirectoryNode(
       details: NodeDetails.zero(),

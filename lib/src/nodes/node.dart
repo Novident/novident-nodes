@@ -69,6 +69,7 @@ abstract class Node extends NodeNotifier
     required Node node,
     required Node target,
     bool inside = true,
+    bool isSwapMove = false,
     int? maxDepthLevel,
     bool shouldNotify = true,
     bool propagate = true,
@@ -89,7 +90,12 @@ abstract class Node extends NodeNotifier
     final bool isAncestor = node.owner?.id == target.id;
 
     // Is the descendant node is trying to move into its ancestor
-    if (isAncestor && inside) {
+    //
+    // When [isSwapMove] is true, means that we are swapping the positions
+    // between two nodes into a same node owner (so, we don't need to
+    // make this check)
+    if (isAncestor && inside && !isSwapMove) {
+      // Already a direct child of target
       return false;
     }
 
@@ -99,13 +105,7 @@ abstract class Node extends NodeNotifier
       return false;
     }
 
-    // 5. Circular ownership check
-    if (node.owner?.id == target.id) {
-      // Already a direct child of target
-      return false;
-    }
-
-    // 6. Level validation (optional - if you have hierarchy depth limits)
+    // 5. Level validation (optional - if you have hierarchy depth limits)
     if (maxDepthLevel != null && inside) {
       if (target.level >= maxDepthLevel) {
         // Prevent moving too deep in the hierarchy

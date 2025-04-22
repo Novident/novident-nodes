@@ -1,3 +1,9 @@
+## 1.1.1
+
+* Fix: cannot use `canMoveTo` correctly because it's returning `false` always.
+* Fix: insertion methods and related won't work by unconfigurable `canMoveTo`.
+* Chore(test): added tests to avoid error with ancestor checking in a swap operation.
+
 ## 1.1.0
 
 * Feat: added `verticalMove()` method, to allow moving Nodes between the Tree.

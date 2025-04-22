@@ -292,7 +292,6 @@ abstract class NodeContainer extends Node {
   /// * [insertIndex]: The index where will be inserted the [Node] into the target passed
   /// * [shouldNotify]: Whether to trigger change notifications
   /// * [ensureDeletion]: determines if the method will ensure that the [Node] passed is removed from the current [NodeContainer]
-  /// * [followStandardValidations]: Whether this will use [`canMoveTo`] to avoid not valid insertions
   bool moveNode(
     Node node,
     NodeContainer to, {
@@ -300,13 +299,7 @@ abstract class NodeContainer extends Node {
     bool shouldNotify = true,
     bool propagate = true,
     bool ensureDeletion = true,
-    bool followStandardValidations = true,
   }) {
-    if (followStandardValidations) {
-      if (!Node.canMoveTo(node: node, target: to)) {
-        return false;
-      }
-    }
     if (node.index < 0 || insertIndex != null && insertIndex < 0) return false;
     removeWhere((Node n) => n.id == node.id, shouldNotify: false);
     if (ensureDeletion) {
@@ -336,23 +329,16 @@ abstract class NodeContainer extends Node {
   /// * [to]: The [NodeContainer] where the [Node] will be moved
   /// * [insertIndex]: The index where will be inserted the [Node] into the target passed
   /// * [shouldNotify]: Whether to trigger change notifications
-  /// * [followStandardValidations]: Whether this will use [`canMoveTo`] to avoid not valid insertions
   bool moveNodeById(
     String id,
     NodeContainer to, {
     int? insertIndex,
     bool shouldNotify = true,
     bool propagate = true,
-    bool followStandardValidations = true,
   }) {
     final int index = _children.indexWhere((Node node) => node.id == id);
     if (index < 0) return false;
     final Node node = elementAt(index);
-    if (followStandardValidations) {
-      if (!Node.canMoveTo(node: node, target: to)) {
-        return false;
-      }
-    }
     final bool removed = remove(node, shouldNotify: false);
     if (!removed) {
       throw StateError(
@@ -376,18 +362,11 @@ abstract class NodeContainer extends Node {
   ///
   /// - [element]: The node to add
   /// - [shouldNotify]: Whether to trigger change notifications
-  /// - [followStandardValidations]: Whether this will use [`canMoveTo`] to avoid not valid insertions
   void add(
     Node element, {
     bool shouldNotify = true,
     bool propagateNotifications = false,
-    bool followStandardValidations = true,
   }) {
-    if (followStandardValidations) {
-      if (!Node.canMoveTo(node: element, target: this)) {
-        return;
-      }
-    }
     onChange(
       _decideInsertionOrMove(
         to: this,
@@ -434,20 +413,12 @@ abstract class NodeContainer extends Node {
   /// - [index]: The position to insert at
   /// - [element]: The node to insert
   /// - [shouldNotify]: Whether to trigger change notifications
-  /// - [followStandardValidations]: Whether this will use [`canMoveTo`] to avoid not valid insertions
-  ///
   void insert(
     int index,
     Node element, {
     bool shouldNotify = true,
     bool propagateNotifications = false,
-    bool followStandardValidations = true,
   }) {
-    if (followStandardValidations) {
-      if (!Node.canMoveTo(node: element, target: this)) {
-        return;
-      }
-    }
     final Node originalElement = element.clone();
     if (element.owner != this) {
       element.owner = this;
