@@ -28,10 +28,10 @@ void main() {
     final DirectoryNode node = DirectoryNode(
       details: NodeDetails.zero(),
       children: <Node>[
-        FileNode(
+        DirectoryNode(
           details: NodeDetails.byId(id: 'test', level: 0),
-          content: '',
-          name: 'File 1',
+          children: <Node>[],
+          name: 'First Dir',
         ),
         DirectoryNode(
           details: NodeDetails.byId(id: 'test 2', level: 0),
@@ -59,6 +59,21 @@ void main() {
       node.last.verticalMove(allowMoveToAncestor: true, down: false);
       expect(node.first.id, 'test 2');
       expect(node.last.id, 'test');
+      moved = true;
+    }
+    expect(moved, isTrue);
+    moved = false;
+    // you can also check using the real target
+    if (Node.canMoveTo(
+      node: node.first,
+      target: node.last,
+      inside: false,
+    )) {
+      expect(node.first.id, 'test 2');
+      expect(node.last.id, 'test');
+      node.last.verticalMove(allowMoveToAncestor: true, down: false);
+      expect(node.first.id, 'test');
+      expect(node.last.id, 'test 2');
       moved = true;
     }
     expect(moved, isTrue);
