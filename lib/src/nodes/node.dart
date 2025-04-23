@@ -71,8 +71,6 @@ abstract class Node extends NodeNotifier
     bool inside = true,
     bool isSwapMove = false,
     int? maxDepthLevel,
-    bool shouldNotify = true,
-    bool propagate = true,
   }) {
     // 1. Basic invalid cases
     if (node.id == target.id) return false; // Can't move to self
