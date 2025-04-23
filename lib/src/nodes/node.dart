@@ -30,6 +30,9 @@ abstract class Node extends NodeNotifier
   })  : details = NodeDetails(owner: owner, level: level),
         layer = LayerLink();
 
+  /// Returns the level that should have its children
+  int get childrenLevel => level + 1;
+
   /// Notifies all listeners that this node has changed.
   ///
   /// Should be called whenever the node's state changes in a way that
@@ -122,6 +125,7 @@ abstract class Node extends NodeNotifier
     bool propagate = true,
   }) {
     if (index != null && index < 0) return false;
+    final Node exactClone = node.clone();
     final NodeContainer? oldOwner = node.owner;
     oldOwner?.removeWhere(
       (Node n) => n.id == node.id,
@@ -133,6 +137,13 @@ abstract class Node extends NodeNotifier
     if (shouldNotify) {
       newOwner.notify(propagate: propagate);
       oldOwner?.notify(propagate: propagate);
+      final NodeMoveChange change = NodeMoveChange(
+        to: newOwner,
+        from: oldOwner,
+        newState: node.cloneWithNewLevel(newOwner.childrenLevel),
+        oldState: exactClone,
+      );
+      oldOwner != null ? oldOwner.onChange(change) : newOwner.onChange(change);
     }
     return true;
   }

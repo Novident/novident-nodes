@@ -301,6 +301,7 @@ abstract class NodeContainer extends Node {
     bool ensureDeletion = true,
   }) {
     if (node.index < 0 || insertIndex != null && insertIndex < 0) return false;
+    final Node exactClone = node.clone();
     removeWhere((Node n) => n.id == node.id, shouldNotify: false);
     if (ensureDeletion) {
       final Node? removed = firstWhereOrNull((Node n) => n.id == node.id);
@@ -319,6 +320,13 @@ abstract class NodeContainer extends Node {
     if (shouldNotify) {
       to.notify(propagate: propagate);
       notify(propagate: propagate);
+      final NodeMoveChange change = NodeMoveChange(
+        to: to,
+        from: this,
+        newState: node.cloneWithNewLevel(to.childrenLevel),
+        oldState: exactClone,
+      );
+      onChange(change);
     }
     return true;
   }
@@ -339,6 +347,7 @@ abstract class NodeContainer extends Node {
     final int index = _children.indexWhere((Node node) => node.id == id);
     if (index < 0) return false;
     final Node node = elementAt(index);
+    final Node exactClone = node.clone();
     final bool removed = remove(node, shouldNotify: false);
     if (!removed) {
       throw StateError(
@@ -354,6 +363,13 @@ abstract class NodeContainer extends Node {
     if (shouldNotify) {
       to.notify(propagate: propagate);
       notify(propagate: propagate);
+      final NodeMoveChange change = NodeMoveChange(
+        to: to,
+        from: this,
+        newState: node.cloneWithNewLevel(to.childrenLevel),
+        oldState: exactClone,
+      );
+      onChange(change);
     }
     return true;
   }
