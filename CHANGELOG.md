@@ -1,3 +1,9 @@
+## 1.1.2
+
+* Fix: moving node operations has not implemented `NodeChange` events.
+* Feat: added `childrenLevel` getter, that allow us know what should be the children level.
+* Chore(breaking changes): removed non used properties in `canMoveTo`.
+
 ## 1.1.1
 
 * Fix: cannot use `canMoveTo` correctly because it's returning `false` always.
