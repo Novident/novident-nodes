@@ -18,6 +18,8 @@ The nodes within this package have a specific behavior, and they are capable of 
 
 A `Node` is the fundamental building block of a hierarchical tree structure, designed to represent parent-child relationships with strict ownership rules and movement validation. It forms the core architecture for systems requiring nested data organization (e.g., file systems, UI components, scene graphs).
 
+### Key features
+
 - **Change Notification**: Implements observer pattern via `NodeNotifier`
 - **Tree Traversal**: Supports visitor pattern with `visitAllNodes()`, `collectNodes()`
 - **Cloning**: `cloneWithNewLevel()` and `clone` for hierarchy-aware duplication
@@ -63,14 +65,10 @@ if (Node.canMoveTo(
   target: targetNode,
   // Determines whether to check if a child is 
   // attempting to reinsert itself into its parent
-  inside: true,   
-  // use this when you will swap the position between 
-  // two nodes that are in the same owner
-  //
-  // we use it, since, child reinserting into its parent checking
-  // will be executed, and we need to notify to the method this
-  // is a swap operation (so, it's normal that owner of 
-  // the sourceNode and target are the same one)
+  inside: true,    
+  // Usually, put this to true, when sourceNode owner is the same
+  // node that the targetNode (since, this usually happens when you 
+  // will swap the position between two nodes that are in the same owner)
   isSwapMove: true, 
 )) {
   // Safe to proceed with move operation
