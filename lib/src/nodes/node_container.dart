@@ -310,17 +310,20 @@ abstract class NodeContainer extends Node {
     required Node? from,
     required Node newState,
     required Node? oldState,
+    required int index,
   }) {
     if (from == null) {
       return NodeInsertion(
         to: to,
         from: from,
+        index: index,
         newState: newState,
         oldState: oldState,
       );
     }
     return NodeMoveChange(
       to: to,
+      index: index,
       from: from,
       newState: newState,
       oldState: oldState,
@@ -363,6 +366,7 @@ abstract class NodeContainer extends Node {
       to.notify(propagate: propagate);
       notify(propagate: propagate);
       final NodeMoveChange change = NodeMoveChange(
+        index: insertIndex ?? to.length,
         to: to,
         from: this,
         newState: node.cloneWithNewLevel(to.childrenLevel),
@@ -407,6 +411,7 @@ abstract class NodeContainer extends Node {
       notify(propagate: propagate);
       final NodeMoveChange change = NodeMoveChange(
         to: to,
+        index: insertIndex ?? to.length,
         from: this,
         newState: node.cloneWithNewLevel(to.childrenLevel),
         oldState: exactClone,
@@ -428,6 +433,7 @@ abstract class NodeContainer extends Node {
     onChange(
       _decideInsertionOrMove(
         to: this,
+        index: length,
         from: element.owner,
         newState: element.cloneWithNewLevel(level + 1),
         oldState: element,
@@ -453,6 +459,7 @@ abstract class NodeContainer extends Node {
       onChange(
         _decideInsertionOrMove(
           to: this,
+          index: length,
           from: child.owner,
           newState: child.clone()..owner = this,
           oldState: child,
@@ -488,6 +495,7 @@ abstract class NodeContainer extends Node {
     onChange(
       _decideInsertionOrMove(
         to: this,
+        index: index,
         from: originalElement.owner,
         newState: element.cloneWithNewLevel(level + 1),
         oldState: originalElement,

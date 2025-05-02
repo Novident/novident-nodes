@@ -140,6 +140,7 @@ abstract class Node extends NodeNotifier
       final NodeMoveChange change = NodeMoveChange(
         to: newOwner,
         from: oldOwner,
+        index: index ?? newOwner.length,
         newState: node.cloneWithNewLevel(newOwner.childrenLevel),
         oldState: exactClone,
       );

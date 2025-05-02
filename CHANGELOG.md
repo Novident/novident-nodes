@@ -1,3 +1,7 @@
+## 1.1.4
+
+* Feat(breaking changes): added `index` property to `NodeMoveChange` and `NodeInsertion` changes.
+
 ## 1.1.3
 
 * Fix: cannot attach more than one `NodeNotifierChangeCallback`.

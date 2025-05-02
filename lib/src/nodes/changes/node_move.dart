@@ -8,6 +8,9 @@ part of 'node_change.dart';
 ///
 /// Extends [NodeChange] to provide specific move-related properties.
 class NodeMoveChange extends NodeChange {
+  /// The destination index into the owner
+  final int index;
+
   /// The destination node where the moved node was placed.
   ///
   /// Represents the new parent or position in the tree structure.
@@ -27,6 +30,7 @@ class NodeMoveChange extends NodeChange {
   /// [newState]: The tree state after the move operation (required)
   /// [oldState]: The tree state before the move operation (optional)
   NodeMoveChange({
+    required this.index,
     required this.to,
     required this.from,
     required super.newState,

@@ -8,6 +8,9 @@ part of 'node_change.dart';
 ///
 /// Extends [NodeChange] to provide specific insertion-related properties.
 class NodeInsertion extends NodeChange {
+  /// The destination index into the owner
+  final int index;
+
   /// The node that was inserted into the tree.
   ///
   /// This represents the actual node instance that was added.
@@ -29,6 +32,7 @@ class NodeInsertion extends NodeChange {
   NodeInsertion({
     required this.to,
     required this.from,
+    required this.index,
     required super.newState,
     super.oldState,
   });
