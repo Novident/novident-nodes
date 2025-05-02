@@ -18,5 +18,5 @@ mixin ClonableMixin<T> {
   ///
   /// Returns a new instance of type [T] that is a copy of this object.
   @mustBeOverridden
-  T clone();
+  T clone({bool deep = true});
 }

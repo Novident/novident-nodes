@@ -48,7 +48,7 @@ class FileNode extends Node {
   }
 
   @override
-  FileNode clone() {
+  FileNode clone({bool deep = true}) {
     return FileNode(
       details: details,
       content: content,
@@ -66,7 +66,7 @@ class FileNode extends Node {
   }
 
   @override
-  FileNode cloneWithNewLevel(int level) {
+  FileNode cloneWithNewLevel(int level, {bool deep = true}) {
     return copyWith(
       details: details.cloneWithNewLevel(level),
     );

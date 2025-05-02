@@ -68,6 +68,8 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
   /// Gets the owner/parent node of this node
   NodeContainer? get owner => _owner;
 
+  void detachOwner() => owner = null;
+
   /// Sets the owner/parent node of this node.
   /// Only updates if the new owner is different from current.
   set owner(NodeContainer? node) {
@@ -198,7 +200,7 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
   /// Implements the [ClonableMixin] interface.
   /// Returns a new [NodeDetails] instance with identical properties
   @override
-  NodeDetails clone() {
+  NodeDetails clone({bool deep = true}) {
     return NodeDetails.byId(
       level: level,
       value: value,

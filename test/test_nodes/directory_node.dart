@@ -69,9 +69,15 @@ class DirectoryNode extends NodeContainer {
   }
 
   @override
-  DirectoryNode clone() {
+  DirectoryNode clone({bool deep = true}) {
     return DirectoryNode(
-      children: children,
+      children: !deep
+          ? children
+          : children
+              .map(
+                (Node e) => e.clone(),
+              )
+              .toList(),
       details: NodeDetails.withLevel(level),
       isExpanded: _isExpanded,
       name: name,
@@ -108,10 +114,11 @@ class DirectoryNode extends NodeContainer {
   }
 
   @override
-  DirectoryNode cloneWithNewLevel(int level) {
+  DirectoryNode cloneWithNewLevel(int level, {bool deep = true}) {
     return copyWith(
-        details: details.cloneWithNewLevel(
-      level,
-    ));
+      details: details.cloneWithNewLevel(
+        level,
+      ),
+    );
   }
 }

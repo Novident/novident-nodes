@@ -7,7 +7,7 @@ abstract class NodeContainer extends Node {
   final List<Node> _children;
 
   /// Callback for handling node change notifications
-  NodeNotifierChangeCallback? _notifierCallback;
+  List<NodeNotifierChangeCallback>? _notifierCallback;
 
   NodeContainer({
     required List<Node> children,
@@ -25,19 +25,27 @@ abstract class NodeContainer extends Node {
   ///
   /// [change]: The change event to propagate
   void onChange(NodeChange change) {
-    _notifierCallback?.call(change);
+    if (_notifierCallback == null) return;
+    for (final NodeNotifierChangeCallback notification in _notifierCallback!) {
+      notification(change);
+    }
   }
 
   /// Attaches a change notifier callback to this node and all child containers.
   ///
   /// The callback will receive all change events from this node and its descendants.
   /// [callback]: The notification handler to attach
-  void attachNotifier(NodeNotifierChangeCallback callback) {
-    if (_notifierCallback == callback) return;
-    _notifierCallback = callback;
-    for (final Node child in _children) {
-      if (child is NodeContainer) {
-        child.attachNotifier(callback);
+  void attachNotifier(
+    NodeNotifierChangeCallback callback, {
+    bool attachToChildren = true,
+  }) {
+    _notifierCallback ??= <NodeNotifierChangeCallback>[];
+    _notifierCallback?.add(callback);
+    if (attachToChildren) {
+      for (final Node child in _children) {
+        if (child is NodeContainer) {
+          child.attachNotifier(callback);
+        }
       }
     }
   }
@@ -45,12 +53,36 @@ abstract class NodeContainer extends Node {
   /// Detaches a change notifier callback from this node and all child containers.
   ///
   /// [callback]: The specific callback to remove (null removes all)
-  void detachNotifier(NodeNotifierChangeCallback? callback) {
+  void detachNotifier(
+    NodeNotifierChangeCallback? callback, {
+    bool detachInChildren = true,
+  }) {
     if (_notifierCallback == null) return;
-    if (_notifierCallback == callback) _notifierCallback = null;
-    for (final Node child in _children) {
-      if (child is NodeContainer) {
-        child.detachNotifier(callback);
+    for (int i = 0; i < _notifierCallback!.length; i++) {
+      final NodeNotifierChangeCallback? notify = _notifierCallback?[i];
+      if (notify == callback) {
+        _notifierCallback?.removeAt(i);
+        break;
+      }
+    }
+    if (detachInChildren) {
+      for (final Node child in _children) {
+        if (child is NodeContainer) {
+          child.detachNotifier(callback);
+        }
+      }
+    }
+  }
+
+  /// Detaches all change notifier callbacks from this node.
+  void detachNotifiers({bool detachChildren = true}) {
+    if (_notifierCallback == null) return;
+    _notifierCallback = null;
+    if (detachChildren) {
+      for (final Node child in _children) {
+        if (child is NodeContainer) {
+          child.detachNotifiers();
+        }
       }
     }
   }
@@ -267,10 +299,10 @@ abstract class NodeContainer extends Node {
   }
 
   @override
-  NodeContainer clone();
+  NodeContainer clone({bool deep = true});
 
   @override
-  NodeContainer cloneWithNewLevel(int level);
+  NodeContainer cloneWithNewLevel(int level, {bool deep = true});
 
   /// Determines whether an operation should be treated as insertion or move.
   NodeChange _decideInsertionOrMove({
@@ -280,9 +312,19 @@ abstract class NodeContainer extends Node {
     required Node? oldState,
   }) {
     if (from == null) {
-      return NodeInsertion(to: to, from: from, newState: newState);
+      return NodeInsertion(
+        to: to,
+        from: from,
+        newState: newState,
+        oldState: oldState,
+      );
     }
-    return NodeMoveChange(to: to, from: from, newState: newState);
+    return NodeMoveChange(
+      to: to,
+      from: from,
+      newState: newState,
+      oldState: oldState,
+    );
   }
 
   /// Move the [Node] passed to a new parent.
@@ -458,6 +500,12 @@ abstract class NodeContainer extends Node {
   ///
   /// [shouldNotify]: Whether to trigger change notifications
   void clear({bool shouldNotify = true, bool propagateNotifications = false}) {
+    onChange(
+      NodeClear(
+        newState: clone().._children.clear(),
+        oldState: clone(),
+      ),
+    );
     _children.clear();
     if (shouldNotify) notify(propagate: propagateNotifications);
   }
@@ -480,8 +528,8 @@ abstract class NodeContainer extends Node {
         originalPosition: index,
         sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel)!,
         inNode: clone(),
-        newState: element,
-        oldState: element,
+        oldState: element.clone(),
+        newState: element.clone()..details.detachOwner(),
       ),
     );
     if (shouldNotify) notify(propagate: propagateNotifications);
@@ -499,10 +547,10 @@ abstract class NodeContainer extends Node {
     final Node value = _children.removeLast();
     onChange(
       NodeDeletion(
-        originalPosition: _children.length,
+        originalPosition: _children.length - 1,
         sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel)!,
         inNode: clone(),
-        newState: value.clone(),
+        newState: value.clone()..details.detachOwner(),
         oldState: value.clone(),
       ),
     );
@@ -519,7 +567,30 @@ abstract class NodeContainer extends Node {
     bool shouldNotify = true,
     bool propagateNotifications = false,
   }) {
-    _children.removeWhere(callback);
+    Node? node;
+    int indexAt = 0;
+    for (int i = 0; i < length; i++) {
+      indexAt = i;
+      node = _children.elementAt(i);
+      if (callback(node)) {
+        _children.removeAt(i);
+        break;
+      }
+      node = null;
+    }
+    if (node == null || indexAt >= length) {
+      return;
+    }
+    onChange(
+      NodeDeletion(
+        originalPosition: indexAt,
+        sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel)!,
+        inNode: clone(),
+        newState:
+            node.copyWith(details: node.details.copyWith(owner: null)).clone(),
+        oldState: node.clone(),
+      ),
+    );
     if (shouldNotify) notify(propagate: propagateNotifications);
   }
 
@@ -639,7 +710,7 @@ abstract class NodeContainer extends Node {
   /// Cleans up resources and detaches all notifiers.
   @override
   void dispose() {
-    detachNotifier(_notifierCallback);
+    detachNotifiers(detachChildren: true);
     super.dispose();
   }
 }

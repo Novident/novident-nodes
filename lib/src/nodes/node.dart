@@ -274,8 +274,7 @@ abstract class Node extends NodeNotifier
   /// given passed.
   ///
   /// Usually used when a [Node] is inserted or moved into the Nodes Tree.
-  @mustBeOverridden
-  Node cloneWithNewLevel(int level);
+  Node cloneWithNewLevel(int level, {bool deep = true});
 
   /// Equality comparison between nodes.
   ///

@@ -1,3 +1,11 @@
+## 1.1.3
+
+* Fix: cannot attach more than one `NodeNotifierChangeCallback`.
+* Fix: `removeWhere` does not notify with `NodeChange` type.
+* Chore: improved some `NodeChange` calls.
+* Feat: added `NodeClear` change for when the `children` are cleaned using `clear()`.
+* Feat(breaking changes): added optional property called `deep` for `clone` and `cloneWithNewLevel` methods.
+
 ## 1.1.2
 
 * Fix: moving node operations has not implemented `NodeChange` events.

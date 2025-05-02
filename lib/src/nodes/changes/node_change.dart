@@ -4,6 +4,7 @@ part 'node_insertion.dart';
 part 'node_move.dart';
 part 'node_update.dart';
 part 'node_deletion.dart';
+part 'node_clear.dart';
 
 /// Abstract base class representing a change operation performed on a [Node].
 ///
