@@ -84,7 +84,7 @@ if (Node.canMoveTo(
 
 ## Packages that uses **Novident Nodes** package:
 
-- **[Novident-corkboard](https://github.com/Novident/novident-corkboard):** Nodes are used to display nodes in different ways in a customized way, such as creating index cards that can have a defined shape or a defined point on the screen, or even having what we call freeform node mode, which allows us to move these cards to any position we want.
+- **[Novident-corkboard](https://github.com/Novident/novident-corkboard):** Nodes are used to display nodes in different ways in a customized way, such as creating index cards that can have a defined shape, or a defined point on the screen, that's also called **FreeForm** corkboard, which allows us to move these cards to any position we want in an infinite canvas view.
 
 - **[Novident-tree-view](https://github.com/Novident/novident-tree-view):** Nodes are used to define where and how nodes will be displayed in a widget tree. It's quite similar to **TreeSliverView**, but this implementation is more tailored to work with Novident standards.
 
