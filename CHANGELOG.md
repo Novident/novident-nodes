@@ -1,3 +1,12 @@
+## 1.1.5
+
+* Fix: `attachNotifier` does not check if the notifier is already added.
+* Fix: infinite equality method when we use something like: `node.details == other.details`;
+* Fix: bad implementation of equality for `NodeChange` class implementations.
+* Feat: `detachNotifiers` now can exclude some callbacks from the deletion using `excludeFromRemove`.
+* Chore(test): added tests for `NodeChange` notifiers.
+* Chore(doc): added documentation about attaching and detaching notifiers.
+
 ## 1.1.4
 
 * Feat(breaking changes): added `index` property to `NodeMoveChange` and `NodeInsertion` changes.

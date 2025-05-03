@@ -36,4 +36,25 @@ class NodeInsertion extends NodeChange {
     required super.newState,
     super.oldState,
   });
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! NodeInsertion) return false;
+    return newState == other.newState &&
+        oldState == other.oldState &&
+        to == other.to &&
+        from == other.from &&
+        index == other.index;
+  }
+
+  @override
+  int get hashCode => Object.hashAllUnordered(
+        <Object?>[
+          index,
+          to,
+          from,
+          newState,
+          oldState,
+        ],
+      );
 }

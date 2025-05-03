@@ -1,7 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:novident_nodes/src/nodes/node.dart';
-import 'package:novident_nodes/src/nodes/node_container.dart';
-import 'package:novident_nodes/src/nodes/node_details.dart';
+import 'package:novident_nodes/novident_nodes.dart';
 
 import 'test_nodes/directory_node.dart';
 import 'test_nodes/file_node.dart';
@@ -293,6 +291,38 @@ void main() {
     node.first.notify(propagate: true);
     expect(buffer.toString().split('\n').reversed.join('\n'),
         'Directory\n  File 1');
+  });
+
+  test('should notify about NodeChange', () {
+    final DirectoryNode node = DirectoryNode(
+      details: NodeDetails.zero(),
+      children: <Node>[
+        FileNode(
+          details: NodeDetails.byId(id: 'test', level: 1),
+          content: '',
+          name: 'File 1',
+        ),
+      ],
+      name: 'Dir',
+    );
+    expect(node.isNotEmpty, isTrue);
+    expect(node.first.owner, node);
+    NodeChange? change;
+    node.attachNotifier((NodeChange inChange) {
+      change = inChange;
+    });
+    expect(change, isNull);
+    final Node removed = node.removeAt(0);
+    expect(
+      change,
+      NodeDeletion(
+        originalPosition: 0,
+        inNode: node,
+        sourceOwner: node,
+        newState: removed.clone()..details.detachOwner(),
+        oldState: removed,
+      ),
+    );
   });
 
   test('should return a correct json', () {

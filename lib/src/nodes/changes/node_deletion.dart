@@ -41,4 +41,25 @@ class NodeDeletion extends NodeChange {
     required super.newState,
     super.oldState,
   });
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! NodeDeletion) return false;
+    return newState == other.newState &&
+        oldState == other.oldState &&
+        originalPosition == other.originalPosition &&
+        inNode == other.inNode &&
+        sourceOwner == other.sourceOwner;
+  }
+
+  @override
+  int get hashCode => Object.hashAllUnordered(
+        <Object?>[
+          originalPosition,
+          inNode,
+          sourceOwner,
+          newState,
+          oldState,
+        ],
+      );
 }

@@ -28,6 +28,7 @@ class FileNode extends Node {
     if (other is! FileNode) {
       return false;
     }
+    if (identical(this, other)) return true;
     return details == other.details &&
         content == other.content &&
         name == other.name;
@@ -44,13 +45,13 @@ class FileNode extends Node {
 
   @override
   String toString() {
-    return 'FileNode(name: $name, depth: $level)';
+    return 'FileNode(name: $name, content: $content, depth: $level, details: $details)';
   }
 
   @override
   FileNode clone({bool deep = true}) {
     return FileNode(
-      details: details,
+      details: details.clone(),
       content: content,
       name: name,
     );

@@ -65,7 +65,7 @@ class DirectoryNode extends NodeContainer {
 
   @override
   String toString() {
-    return 'DirectoryNode(name: $name, isExpanded: $isExpanded, count nodes: ${children.length}, depth: $level)';
+    return 'DirectoryNode(name: $name, isExpanded: $isExpanded, count nodes: ${children.length}, depth: $level, details: $details)';
   }
 
   @override
@@ -78,7 +78,7 @@ class DirectoryNode extends NodeContainer {
                 (Node e) => e.clone(),
               )
               .toList(),
-      details: NodeDetails.withLevel(level),
+      details: details.clone(),
       isExpanded: _isExpanded,
       name: name,
     );
@@ -89,6 +89,7 @@ class DirectoryNode extends NodeContainer {
     if (other is! DirectoryNode) {
       return false;
     }
+    if (identical(this, other)) return true;
     return listEquals(children, other.children) &&
         name == other.name &&
         details == other.details &&
@@ -99,7 +100,7 @@ class DirectoryNode extends NodeContainer {
   int get hashCode => Object.hashAllUnordered(<Object?>[
         details,
         name,
-        details,
+        children,
         _isExpanded,
       ]);
 

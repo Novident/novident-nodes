@@ -13,4 +13,18 @@ class NodeClear extends NodeChange {
     required super.newState,
     super.oldState,
   });
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! NodeClear) return false;
+    return newState == other.newState && oldState == other.oldState;
+  }
+
+  @override
+  int get hashCode => Object.hashAllUnordered(
+        <Object?>[
+          newState,
+          oldState,
+        ],
+      );
 }

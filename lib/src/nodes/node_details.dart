@@ -191,7 +191,7 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
     if (identical(this, other)) return true;
     return level == other.level &&
         id == other.id &&
-        owner == other.owner &&
+        owner?.id == other.owner?.id &&
         value == other.value;
   }
 

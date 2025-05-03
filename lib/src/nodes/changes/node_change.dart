@@ -1,3 +1,4 @@
+import 'package:meta/meta.dart';
 import 'package:novident_nodes/novident_nodes.dart';
 
 part 'node_insertion.dart';
@@ -36,4 +37,12 @@ abstract class NodeChange {
   /// This always represents the current state of the node following
   /// the operation.
   final Node newState;
+
+  @override
+  @mustBeOverridden
+  bool operator ==(Object other);
+
+  @override
+  @mustBeOverridden
+  int get hashCode;
 }

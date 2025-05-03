@@ -20,9 +20,10 @@ A `Node` is the fundamental building block of a hierarchical tree structure, des
 
 ### Key features
 
-- **Change Notification**: Implements observer pattern via `NodeNotifier`
-- **Tree Traversal**: Supports visitor pattern with `visitAllNodes()`, `collectNodes()`
-- **Cloning**: `cloneWithNewLevel()` and `clone` for hierarchy-aware duplication
+- **General Change Notification**: Implements observer pattern via `NodeNotifier` that's an extension of `ChangeNotifier`.
+- **Specific changes notifications**: Implements observer pattern for specific changes using `attachNotifier`. 
+- **Tree Traversal**: Supports visitor pattern with `visitAllNodes()`, `collectNodes()`.
+- **Cloning**: `cloneWithNewLevel()` and `clone()` for hierarchy-aware duplication.
 
 ## Notifying changes 
 
@@ -45,6 +46,64 @@ However, if you only want to update a specific part that doesn't require updatin
 
 ```dart
 yourNode.notify();
+```
+
+## Listening specific changes using internal notifiers
+
+The notifiers system in `NodeContainer` provides a mechanism to observe and react to changes in the node structure and its descendants. 
+
+This system is a bit more accurate than the one used by `ChangeNotifier`, because we provide changes of a specific type that can be more useful, since depending on the change, the information can be very useful.
+
+An example of this is `NodeMoveChange`, which tells us the position where the node will be inserted (`index`), the node itself (`newState`), its previous state (before the change: `oldState`), where it came from (its previous owner: `from`), and where it will be inserted (its new owner: `to`).
+
+### Usage Considerations
+
+* **Hierarchy:** Notifiers can operate on a single node or its entire child hierarchy (it's defined when you use `attachToChildren`).
+* **Performance:** Change propagation through many nodes may impact performance.
+* **Memory Management:** It's important to unregister callbacks when no longer needed to prevent memory leaks.
+
+```dart
+final container = NodeContainer(children: [], details: ...);
+
+// Definir un callback
+void handleChange(NodeChange change) {
+  if(change is NodeClear) {
+    // ... for when the children node are cleaned
+  }
+  if(change is NodeDeletion) {
+    // ... for when a Node is removed from it's owner 
+  }
+  if(change is NodeInsertion) {
+    // ... for when a Node is added/inserted to a owner 
+  }
+  if(change is NodeMoveChange) {
+    // ... usually used when a node
+    // from an owner is inserted into another
+    // one
+  }
+  if(change is NodeUpdate) {
+    // ... for when a Node is updated into it's owner
+  }
+}
+
+// attach your notifier 
+// you can also attach automatically this callback to it's children too
+node.attachNotifier(handleChange, attachToChildren: false);
+
+// you can also manually add a change or custom change using:
+// container.onChange(SomeNodeChange());
+
+// If you want to remove a notifier, you can use:
+container.detachNotifier(handleChange);
+
+// If you prefer you can:
+//
+// Dispose the node (Make it and its descendants unusable)
+container.dispose();
+// Or
+//
+// Just remove all/specific notifiers
+container.detachNotifiers(detachChildren: true, excludeFromRemove: [callbacksThatWeNeedYet()]);
 ```
 
 ## Moving Nodes
@@ -81,6 +140,7 @@ if (Node.canMoveTo(
 1. Always validate with `canMoveTo()` before `moveTo()`.
 2. Use `notify(propagate: true)` only when you need update different parts of the Tree at the same time.
 3. Prefer `jumpToParent()` over manual owner traversal.
+3. Dispose your nodes to prevent memory leaks using `dispose()`.
 
 ## Packages that uses **Novident Nodes** package:
 

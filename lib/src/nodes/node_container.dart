@@ -7,7 +7,7 @@ abstract class NodeContainer extends Node {
   final List<Node> _children;
 
   /// Callback for handling node change notifications
-  List<NodeNotifierChangeCallback>? _notifierCallback;
+  List<NodeNotifierChangeCallback>? _notifierCallbacks;
 
   NodeContainer({
     required List<Node> children,
@@ -25,8 +25,8 @@ abstract class NodeContainer extends Node {
   ///
   /// [change]: The change event to propagate
   void onChange(NodeChange change) {
-    if (_notifierCallback == null) return;
-    for (final NodeNotifierChangeCallback notification in _notifierCallback!) {
+    if (_notifierCallbacks == null) return;
+    for (final NodeNotifierChangeCallback notification in _notifierCallbacks!) {
       notification(change);
     }
   }
@@ -34,13 +34,18 @@ abstract class NodeContainer extends Node {
   /// Attaches a change notifier callback to this node and all child containers.
   ///
   /// The callback will receive all change events from this node and its descendants.
-  /// [callback]: The notification handler to attach
+  ///
+  /// - [callback]: The notification handler to attach.
+  /// - [attachToChildren]: Determines if the notifier will be attached into it's children too.
   void attachNotifier(
     NodeNotifierChangeCallback callback, {
-    bool attachToChildren = true,
+    bool attachToChildren = false,
   }) {
-    _notifierCallback ??= <NodeNotifierChangeCallback>[];
-    _notifierCallback?.add(callback);
+    if (_notifierCallbacks != null && _notifierCallbacks!.contains(callback)) {
+      return;
+    }
+    _notifierCallbacks ??= <NodeNotifierChangeCallback>[];
+    _notifierCallbacks?.add(callback);
     if (attachToChildren) {
       for (final Node child in _children) {
         if (child is NodeContainer) {
@@ -52,16 +57,18 @@ abstract class NodeContainer extends Node {
 
   /// Detaches a change notifier callback from this node and all child containers.
   ///
-  /// [callback]: The specific callback to remove (null removes all)
+  /// - [callback]: The specific callback to remove.
+  /// - [detachInChildren]: Determines if the notifier will be removed from
+  /// it's children too.
   void detachNotifier(
-    NodeNotifierChangeCallback? callback, {
-    bool detachInChildren = true,
+    NodeNotifierChangeCallback callback, {
+    bool detachInChildren = false,
   }) {
-    if (_notifierCallback == null) return;
-    for (int i = 0; i < _notifierCallback!.length; i++) {
-      final NodeNotifierChangeCallback? notify = _notifierCallback?[i];
+    if (_notifierCallbacks == null) return;
+    for (int i = 0; i < _notifierCallbacks!.length; i++) {
+      final NodeNotifierChangeCallback? notify = _notifierCallbacks?[i];
       if (notify == callback) {
-        _notifierCallback?.removeAt(i);
+        _notifierCallbacks?.removeAt(i);
         break;
       }
     }
@@ -75,13 +82,38 @@ abstract class NodeContainer extends Node {
   }
 
   /// Detaches all change notifier callbacks from this node.
-  void detachNotifiers({bool detachChildren = true}) {
-    if (_notifierCallback == null) return;
-    _notifierCallback = null;
+  ///
+  /// - [detachChildren]: Determines if need to clear the notifiers in
+  /// it's children too.
+  void detachNotifiers({
+    bool detachChildren = true,
+    List<NodeNotifierChangeCallback>? excludeFromRemove,
+  }) {
+    if (_notifierCallbacks == null) return;
+    if (excludeFromRemove != null) {
+      final List<NodeNotifierChangeCallback> cloneList =
+          <NodeNotifierChangeCallback>[..._notifierCallbacks!];
+      for (int i = 0; i < _notifierCallbacks!.length; i++) {
+        final NodeNotifierChangeCallback notifier =
+            _notifierCallbacks!.elementAt(i);
+        if (excludeFromRemove.contains(notifier)) {
+          continue;
+        }
+        cloneList.removeAt(i);
+      }
+      _notifierCallbacks!
+        ..clear()
+        ..addAll(cloneList);
+    } else {
+      _notifierCallbacks = null;
+    }
     if (detachChildren) {
       for (final Node child in _children) {
         if (child is NodeContainer) {
-          child.detachNotifiers();
+          child.detachNotifiers(
+            detachChildren: detachChildren,
+            excludeFromRemove: excludeFromRemove,
+          );
         }
       }
     }
@@ -618,7 +650,7 @@ abstract class NodeContainer extends Node {
         originalPosition: index,
         sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel)!,
         inNode: clone(),
-        newState: value.clone(),
+        newState: value.clone()..details.detachOwner(),
         oldState: value.clone(),
       ),
     );
@@ -718,7 +750,7 @@ abstract class NodeContainer extends Node {
   /// Cleans up resources and detaches all notifiers.
   @override
   void dispose() {
-    detachNotifiers(detachChildren: true);
+    detachNotifiers();
     super.dispose();
   }
 }
