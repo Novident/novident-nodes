@@ -2,6 +2,7 @@
 
 * Fix: `attachNotifier` does not check if the notifier is already added.
 * Fix: infinite equality method when we use something like: `node.details == other.details`;
+* Fix: `removeAt` is giving a wrong `originalPosition` value for notifiers.
 * Fix: bad implementation of equality for `NodeChange` class implementations.
 * Feat: `detachNotifiers` now can exclude some callbacks from the deletion using `excludeFromRemove`.
 * Chore(test): added tests for `NodeChange` notifiers.

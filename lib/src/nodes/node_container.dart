@@ -467,14 +467,15 @@ abstract class NodeContainer extends Node {
         to: this,
         index: length,
         from: element.owner,
-        newState: element.cloneWithNewLevel(level + 1),
+        newState: element.cloneWithNewLevel(childrenLevel)
+          ..details.owner = this,
         oldState: element,
       ),
     );
     if (element.owner != this) {
       element.owner = this;
     }
-    _children.add(element.cloneWithNewLevel(level + 1));
+    _children.add(element.cloneWithNewLevel(childrenLevel));
     if (shouldNotify) notify(propagate: propagateNotifications);
   }
 
@@ -493,14 +494,15 @@ abstract class NodeContainer extends Node {
           to: this,
           index: length,
           from: child.owner,
-          newState: child.clone()..owner = this,
+          newState: child.cloneWithNewLevel(childrenLevel)
+            ..details.owner = this,
           oldState: child,
         ),
       );
       if (child.owner != this) {
         child.owner = this;
       }
-      _children.add(child.cloneWithNewLevel(level + 1));
+      _children.add(child.cloneWithNewLevel(childrenLevel));
     }
     if (shouldNotify) notify(propagate: propagateNotifications);
   }
@@ -522,14 +524,14 @@ abstract class NodeContainer extends Node {
     }
     _children.insert(
       index,
-      element.cloneWithNewLevel(level + 1),
+      element.cloneWithNewLevel(childrenLevel),
     );
     onChange(
       _decideInsertionOrMove(
         to: this,
         index: index,
         from: originalElement.owner,
-        newState: element.cloneWithNewLevel(level + 1),
+        newState: element.cloneWithNewLevel(childrenLevel),
         oldState: originalElement,
       ),
     );
@@ -587,7 +589,7 @@ abstract class NodeContainer extends Node {
     final Node value = _children.removeLast();
     onChange(
       NodeDeletion(
-        originalPosition: _children.length - 1,
+        originalPosition: _children.length,
         sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel)!,
         inNode: clone(),
         newState: value.clone()..details.detachOwner(),
