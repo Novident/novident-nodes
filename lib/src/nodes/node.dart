@@ -98,7 +98,7 @@ abstract class Node extends NodeNotifier
     // 2. Prevent moving a container into its own descendants
     if (node is NodeContainer) {
       final bool isOwnDescendant =
-          target.jumpToParent(stopAt: (Node p) => p.id == node.id)?.id ==
+          target.jumpToParent(stopAt: (Node p) => p.id == node.id).id ==
               node.id;
 
       if (isOwnDescendant) return false;
