@@ -1,6 +1,6 @@
 name: novident_nodes
 description: "An internal Novident package for export common Nodes"
-version: 1.1.5
+version: 1.1.6
 documentation: https://github.com/Novident/novident-nodes/issues/
 repository: https://github.com/Novident/novident-nodes/
 homepage: https://github.com/Novident/novident-nodes/

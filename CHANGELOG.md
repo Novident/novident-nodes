@@ -5,7 +5,6 @@
 * Feat: added `hasNotifiersAttached` to know if there's any listener attached.
 * Feat: added `findNodePath` to Node class to get the exact index path (the list start with index of the hightest owner)
 
-
 ## 1.1.5
 
 * Fix: `attachNotifier` does not check if the notifier is already added.
