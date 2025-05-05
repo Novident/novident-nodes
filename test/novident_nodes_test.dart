@@ -22,6 +22,54 @@ void main() {
     expect(node.first.level, 1);
   });
 
+  test('should get correct path', () {
+    final DirectoryNode node = DirectoryNode(
+      details: NodeDetails.zero(),
+      children: <Node>[
+        DirectoryNode(
+          details: NodeDetails.byId(id: 'test', level: 0),
+          children: <Node>[],
+          name: 'First Dir',
+        ),
+        DirectoryNode(
+          details: NodeDetails.byId(id: 'test 2', level: 0),
+          children: <Node>[
+            FileNode(
+              details: NodeDetails.byId(id: 'test 3', level: 0),
+              content: '',
+              name: 'File 2',
+            ),
+            DirectoryNode(
+              details: NodeDetails.byId(id: 'test 4', level: 0),
+              children: <Node>[
+                FileNode(
+                  details: NodeDetails.byId(id: 'test 5', level: 0),
+                  content: '',
+                  name: 'File 3',
+                ),
+                FileNode(
+                  details: NodeDetails.byId(id: 'test 6', level: 0),
+                  content: '',
+                  name: 'File 4',
+                ),
+                FileNode(
+                  details: NodeDetails.byId(id: 'test 7', level: 0),
+                  content: '',
+                  name: 'File 5',
+                ),
+              ],
+              name: 'Dir 2',
+            ),
+          ],
+          name: 'Dir 3',
+        ),
+      ],
+      name: 'Dir',
+    );
+    expect(
+        node.last.castToDir.last.castToDir.last.findNodePath(), <int>[1, 1, 2]);
+  });
+
   test('should swap children', () {
     final DirectoryNode node = DirectoryNode(
       details: NodeDetails.zero(),

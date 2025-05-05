@@ -45,6 +45,23 @@ abstract class Node extends NodeNotifier
     }
   }
 
+  List<int> findNodePath() {
+    if (owner == null) return <int>[];
+    final int i = index;
+    if (i == -2) return <int>[];
+    final List<int> path = <int>[i];
+    NodeContainer? highestOwner = owner;
+    while (true) {
+      final int ownerIndex = highestOwner?.index ?? -2;
+      highestOwner = highestOwner!.owner;
+      if (ownerIndex == -2) break;
+      path.add(ownerIndex);
+      if (highestOwner == null) break;
+    }
+
+    return <int>[...path.reversed];
+  }
+
   /// Validates if a node can be moved to a target location in the hierarchy by checking these rules:
   ///
   /// Self-move prevention
@@ -134,17 +151,18 @@ abstract class Node extends NodeNotifier
     index == null || (index >= newOwner.length || index < 0)
         ? newOwner.add(node, shouldNotify: false)
         : newOwner.insert(index, node, shouldNotify: false);
+    final NodeMoveChange change = NodeMoveChange(
+      to: newOwner,
+      from: oldOwner,
+      index: index ?? newOwner.length,
+      newState: node.cloneWithNewLevel(newOwner.childrenLevel),
+      oldState: exactClone,
+    );
+    oldOwner?.onChange(change);
+    newOwner.onChange(change);
     if (shouldNotify) {
       newOwner.notify(propagate: propagate);
       oldOwner?.notify(propagate: propagate);
-      final NodeMoveChange change = NodeMoveChange(
-        to: newOwner,
-        from: oldOwner,
-        index: index ?? newOwner.length,
-        newState: node.cloneWithNewLevel(newOwner.childrenLevel),
-        oldState: exactClone,
-      );
-      oldOwner != null ? oldOwner.onChange(change) : newOwner.onChange(change);
     }
     return true;
   }
@@ -224,7 +242,7 @@ abstract class Node extends NodeNotifier
   ///
   /// Returns the highest parent node that satisfies the conditions,
   /// or this node if no parent exists or stop condition is met.
-  NodeContainer? jumpToParent({bool Function(Node node)? stopAt}) {
+  NodeContainer jumpToParent({bool Function(Node node)? stopAt}) {
     if (owner == null || (stopAt?.call(this) ?? false)) {
       return this as NodeContainer;
     }

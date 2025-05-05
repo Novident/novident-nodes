@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:novident_nodes/novident_nodes.dart';
 
 /// An abstract container node that manages a collection of child nodes.
@@ -21,9 +22,16 @@ abstract class NodeContainer extends Node {
   /// Return if the container is expanded
   bool get isExpanded;
 
+  @mustCallSuper
+  bool get hasNotifiersAttached => _notifierCallbacks?.isNotEmpty ?? false;
+
+  @mustCallSuper
+  bool get hasNoNotifiersAttached => _notifierCallbacks?.isEmpty ?? true;
+
   /// Handles node change events by propagating them to registered listeners.
   ///
   /// [change]: The change event to propagate
+  @mustCallSuper
   void onChange(NodeChange change) {
     if (_notifierCallbacks == null) return;
     for (final NodeNotifierChangeCallback notification in _notifierCallbacks!) {
@@ -37,12 +45,17 @@ abstract class NodeContainer extends Node {
   ///
   /// - [callback]: The notification handler to attach.
   /// - [attachToChildren]: Determines if the notifier will be attached into it's children too.
+  @mustCallSuper
   void attachNotifier(
     NodeNotifierChangeCallback callback, {
     bool attachToChildren = false,
+    bool strict = true,
   }) {
-    if (_notifierCallbacks != null && _notifierCallbacks!.contains(callback)) {
-      return;
+    if (strict) {
+      if (_notifierCallbacks != null &&
+          _notifierCallbacks!.contains(callback)) {
+        return;
+      }
     }
     _notifierCallbacks ??= <NodeNotifierChangeCallback>[];
     _notifierCallbacks?.add(callback);
@@ -60,6 +73,7 @@ abstract class NodeContainer extends Node {
   /// - [callback]: The specific callback to remove.
   /// - [detachInChildren]: Determines if the notifier will be removed from
   /// it's children too.
+  @mustCallSuper
   void detachNotifier(
     NodeNotifierChangeCallback callback, {
     bool detachInChildren = false,
@@ -85,6 +99,7 @@ abstract class NodeContainer extends Node {
   ///
   /// - [detachChildren]: Determines if need to clear the notifiers in
   /// it's children too.
+  @mustCallSuper
   void detachNotifiers({
     bool detachChildren = true,
     List<NodeNotifierChangeCallback>? excludeFromRemove,
@@ -394,17 +409,17 @@ abstract class NodeContainer extends Node {
     } else {
       to.insert(insertIndex, node, shouldNotify: false);
     }
+    final NodeMoveChange change = NodeMoveChange(
+      index: insertIndex ?? to.length,
+      to: to,
+      from: this,
+      newState: node.cloneWithNewLevel(to.childrenLevel),
+      oldState: exactClone,
+    );
+    onChange(change);
     if (shouldNotify) {
       to.notify(propagate: propagate);
       notify(propagate: propagate);
-      final NodeMoveChange change = NodeMoveChange(
-        index: insertIndex ?? to.length,
-        to: to,
-        from: this,
-        newState: node.cloneWithNewLevel(to.childrenLevel),
-        oldState: exactClone,
-      );
-      onChange(change);
     }
     return true;
   }
@@ -438,17 +453,17 @@ abstract class NodeContainer extends Node {
     } else {
       to.insert(insertIndex, node, shouldNotify: false);
     }
+    final NodeMoveChange change = NodeMoveChange(
+      to: to,
+      index: insertIndex ?? to.length,
+      from: this,
+      newState: node.cloneWithNewLevel(to.childrenLevel),
+      oldState: exactClone,
+    );
+    onChange(change);
     if (shouldNotify) {
       to.notify(propagate: propagate);
       notify(propagate: propagate);
-      final NodeMoveChange change = NodeMoveChange(
-        to: to,
-        index: insertIndex ?? to.length,
-        from: this,
-        newState: node.cloneWithNewLevel(to.childrenLevel),
-        oldState: exactClone,
-      );
-      onChange(change);
     }
     return true;
   }
@@ -568,7 +583,7 @@ abstract class NodeContainer extends Node {
     onChange(
       NodeDeletion(
         originalPosition: index,
-        sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel)!,
+        sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel),
         inNode: clone(),
         oldState: element.clone(),
         newState: element.clone()..details.detachOwner(),
@@ -578,10 +593,30 @@ abstract class NodeContainer extends Node {
     return true;
   }
 
+  /// Removes and returns the first child node.
+  ///
+  /// [shouldNotify]: Whether to trigger change notifications
+  Node removeFirst({
+    bool shouldNotify = true,
+    bool propagateNotifications = false,
+  }) {
+    final Node value = _children.removeAt(0);
+    onChange(
+      NodeDeletion(
+        originalPosition: 1,
+        sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel),
+        inNode: clone(),
+        newState: value.clone()..details.detachOwner(),
+        oldState: value.clone(),
+      ),
+    );
+    if (shouldNotify) notify(propagate: propagateNotifications);
+    return value;
+  }
+
   /// Removes and returns the last child node.
   ///
   /// [shouldNotify]: Whether to trigger change notifications
-  /// Returns the removed node
   Node removeLast({
     bool shouldNotify = true,
     bool propagateNotifications = false,
@@ -590,7 +625,7 @@ abstract class NodeContainer extends Node {
     onChange(
       NodeDeletion(
         originalPosition: _children.length,
-        sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel)!,
+        sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel),
         inNode: clone(),
         newState: value.clone()..details.detachOwner(),
         oldState: value.clone(),
@@ -626,7 +661,7 @@ abstract class NodeContainer extends Node {
     onChange(
       NodeDeletion(
         originalPosition: indexAt,
-        sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel)!,
+        sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel),
         inNode: clone(),
         newState:
             node.copyWith(details: node.details.copyWith(owner: null)).clone(),
@@ -650,7 +685,7 @@ abstract class NodeContainer extends Node {
     onChange(
       NodeDeletion(
         originalPosition: index,
-        sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel)!,
+        sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel),
         inNode: clone(),
         newState: value.clone()..details.detachOwner(),
         oldState: value.clone(),
@@ -751,6 +786,7 @@ abstract class NodeContainer extends Node {
 
   /// Cleans up resources and detaches all notifiers.
   @override
+  @mustCallSuper
   void dispose() {
     detachNotifiers();
     super.dispose();
