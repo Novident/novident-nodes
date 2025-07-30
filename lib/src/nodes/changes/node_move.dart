@@ -57,4 +57,13 @@ class NodeMoveChange extends NodeChange {
           oldState,
         ],
       );
+
+  @override
+  String toString() {
+    return 'NodeMove('
+        'from (direct owner): $from, '
+        'to (direct owner): $to, '
+        'toIndex: $index, '
+        ')';
+  }
 }

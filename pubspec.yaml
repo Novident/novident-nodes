@@ -1,7 +1,7 @@
 name: novident_nodes
 description: "An internal Novident package for export common Nodes"
-version: 1.1.6
-documentation: https://github.com/Novident/novident-nodes/issues/
+version: 1.1.7
+documentation: https://github.com/Novident/novident-nodes/
 repository: https://github.com/Novident/novident-nodes/
 homepage: https://github.com/Novident/novident-nodes/
 issue_tracker: https://github.com/Novident/novident-nodes/issues/
@@ -22,6 +22,6 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 flutter:

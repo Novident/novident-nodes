@@ -27,4 +27,12 @@ class NodeClear extends NodeChange {
           oldState,
         ],
       );
+
+  @override
+  String toString() {
+    return 'NodeClear('
+        'from: ${(oldState as NodeContainer?)?.length}, '
+        'to: ${(newState as NodeContainer).length}'
+        ')';
+  }
 }

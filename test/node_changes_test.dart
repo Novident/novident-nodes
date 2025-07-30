@@ -95,14 +95,15 @@ void main() {
     final Node last = node.removeLast();
     expect(node.last.details.id, 'test');
     expect(last.details.id, 'test 2');
+    expect(last.details.hasOwner, isFalse);
     expect(
       change,
       NodeDeletion(
-        originalPosition: 1,
+        originalPosition: 2,
         sourceOwner: node,
         inNode: node,
         newState: last.clone()..details.detachOwner(),
-        oldState: last,
+        oldState: last.copyWith(details: last.details.copyWith(owner: node)),
       ),
     );
   });

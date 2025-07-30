@@ -68,9 +68,12 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
   /// Gets the owner/parent node of this node
   NodeContainer? get owner => _owner;
 
-  void detachOwner() => owner = null;
+  /// Generates an unique id for nodes usage
+  static String createNodeId() => IdGenerator.gen(version: 4);
 
   /// Sets the owner/parent node of this node.
+  void detachOwner() => owner = null;
+
   /// Only updates if the new owner is different from current.
   set owner(NodeContainer? node) {
     if (_owner == node) return;
@@ -93,8 +96,12 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
   /// [owner]: Optional new owner reference
   /// [value]: Optional new associated value
   /// Returns a new [NodeDetails] instance with specified overrides
-  NodeDetails copyWith(
-      {int? level, String? id, NodeContainer? owner, Object? value}) {
+  NodeDetails copyWith({
+    int? level,
+    String? id,
+    NodeContainer? owner,
+    Object? value,
+  }) {
     return NodeDetails.byId(
       level: level ?? this.level,
       id: id ?? this.id,

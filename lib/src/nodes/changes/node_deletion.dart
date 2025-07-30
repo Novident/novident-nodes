@@ -62,4 +62,15 @@ class NodeDeletion extends NodeChange {
           oldState,
         ],
       );
+
+  @override
+  String toString() {
+    return 'NodeDeletion('
+        'originalPosition: $originalPosition, '
+        'into: $inNode, '
+        'oldState (direct owner): $oldState, '
+        'newState (direct owner): $newState, '
+        'sourceOwner: $sourceOwner, '
+        ')';
+  }
 }

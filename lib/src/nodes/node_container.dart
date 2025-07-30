@@ -184,8 +184,10 @@ abstract class NodeContainer extends Node {
   }
 
   @override
-  Node? visitAllNodes(
-      {required Predicate shouldGetNode, bool reversed = false}) {
+  Node? visitAllNodes({
+    required Predicate shouldGetNode,
+    bool reversed = false,
+  }) {
     for (int i = reversed ? length - 1 : 0;
         reversed ? i >= 0 : i < length;
         reversed ? i-- : i++) {
@@ -201,7 +203,10 @@ abstract class NodeContainer extends Node {
   }
 
   @override
-  Node? visitNode({required Predicate shouldGetNode, bool reversed = false}) {
+  Node? visitNode({
+    required Predicate shouldGetNode,
+    bool reversed = false,
+  }) {
     for (int i = reversed ? length - 1 : 0;
         reversed ? i >= 0 : i < length;
         reversed ? i-- : i++) {
@@ -237,9 +242,8 @@ abstract class NodeContainer extends Node {
   @override
   bool exist(String nodeId) {
     for (int i = 0; i < length; i++) {
-      if (elementAt(i).exist(
-        nodeId,
-      )) {
+      final Node node = elementAt(i);
+      if (node.id == nodeId) {
         return true;
       }
     }
@@ -249,12 +253,8 @@ abstract class NodeContainer extends Node {
   @override
   bool deepExist(String nodeId) {
     for (int i = 0; i < length; i++) {
-      final Node node = elementAt(i);
-      if (node.details.id == nodeId) {
-        return true;
-      }
-      final bool foundedNode = node.deepExist(nodeId);
-      if (foundedNode) return true;
+      if (_children[i].id == nodeId) return true;
+      if (_children[i].exist(nodeId)) return true;
     }
     return false;
   }
@@ -296,12 +296,12 @@ abstract class NodeContainer extends Node {
 
   /// Gets the child node at the specified index.
   Node elementAt(int index) {
-    return _children.elementAt(index);
+    return _children[index];
   }
 
   /// Gets the child node at the specified index or null if out of bounds.
   Node? elementAtOrNull(int index) {
-    return _children.elementAtOrNull(index);
+    return index < 0 || index >= length ? _children[index] : null;
   }
 
   /// Checks if the collection contains the given node.
@@ -394,15 +394,13 @@ abstract class NodeContainer extends Node {
   }) {
     if (node.index < 0 || insertIndex != null && insertIndex < 0) return false;
     final Node exactClone = node.clone();
-    removeWhere((Node n) => n.id == node.id, shouldNotify: false);
-    if (ensureDeletion) {
-      final Node? removed = firstWhereOrNull((Node n) => n.id == node.id);
-      if (removed != null) {
-        throw StateError(
-          'The node founded at index $index '
-          'couldn\'t be removed in $this',
-        );
-      }
+    // if has no parent, them we can ignore the [removed] flag
+    final bool removed = node.owner == null ? true : node.unlink();
+    if (!removed) {
+      throw StateError(
+        'The node founded at $index '
+        'couldn\'t be removed in $runtimeType:$id',
+      );
     }
     if (insertIndex == null || (insertIndex >= to.length || insertIndex < 0)) {
       to.add(node, shouldNotify: false);
@@ -441,11 +439,11 @@ abstract class NodeContainer extends Node {
     if (index < 0) return false;
     final Node node = elementAt(index);
     final Node exactClone = node.clone();
-    final bool removed = remove(node, shouldNotify: false);
+    final bool removed = node.unlink();
     if (!removed) {
       throw StateError(
-        'The node founded at index $index '
-        'couldn\'t be removed in $this',
+        'The node founded at $index '
+        'couldn\'t be removed in $runtimeType:$id',
       );
     }
     if (insertIndex == null || (insertIndex >= to.length || insertIndex < 0)) {
@@ -490,7 +488,11 @@ abstract class NodeContainer extends Node {
     if (element.owner != this) {
       element.owner = this;
     }
-    _children.add(element.cloneWithNewLevel(childrenLevel));
+    _children.add(
+      element.cloneWithNewLevel(
+        childrenLevel,
+      ),
+    );
     if (shouldNotify) notify(propagate: propagateNotifications);
   }
 
@@ -503,11 +505,12 @@ abstract class NodeContainer extends Node {
     bool shouldNotify = true,
     bool propagateNotifications = false,
   }) {
+    int lastLength = length;
     for (final Node child in children) {
       onChange(
         _decideInsertionOrMove(
           to: this,
-          index: length,
+          index: lastLength,
           from: child.owner,
           newState: child.cloneWithNewLevel(childrenLevel)
             ..details.owner = this,
@@ -517,7 +520,12 @@ abstract class NodeContainer extends Node {
       if (child.owner != this) {
         child.owner = this;
       }
-      _children.add(child.cloneWithNewLevel(childrenLevel));
+      _children.add(
+        child.cloneWithNewLevel(
+          childrenLevel,
+        ),
+      );
+      lastLength++;
     }
     if (shouldNotify) notify(propagate: propagateNotifications);
   }
@@ -544,7 +552,7 @@ abstract class NodeContainer extends Node {
     onChange(
       _decideInsertionOrMove(
         to: this,
-        index: index,
+        index: index + 1,
         from: originalElement.owner,
         newState: element.cloneWithNewLevel(childrenLevel),
         oldState: originalElement,
@@ -557,13 +565,16 @@ abstract class NodeContainer extends Node {
   ///
   /// [shouldNotify]: Whether to trigger change notifications
   void clear({bool shouldNotify = true, bool propagateNotifications = false}) {
+    final NodeContainer oldState = clone();
+    _children
+      ..forEach((Node e) => e.details.detachOwner())
+      ..clear();
     onChange(
       NodeClear(
-        newState: clone().._children.clear(),
-        oldState: clone(),
+        newState: clone(),
+        oldState: oldState,
       ),
     );
-    _children.clear();
     if (shouldNotify) notify(propagate: propagateNotifications);
   }
 
@@ -579,17 +590,7 @@ abstract class NodeContainer extends Node {
   }) {
     final int index = _children.indexOf(element);
     if (index <= -1) return false;
-    _children.removeAt(index);
-    onChange(
-      NodeDeletion(
-        originalPosition: index,
-        sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel),
-        inNode: clone(),
-        oldState: element.clone(),
-        newState: element.clone()..details.detachOwner(),
-      ),
-    );
-    if (shouldNotify) notify(propagate: propagateNotifications);
+    removeAt(index, shouldNotify: true);
     return true;
   }
 
@@ -600,7 +601,16 @@ abstract class NodeContainer extends Node {
     bool shouldNotify = true,
     bool propagateNotifications = false,
   }) {
-    final Node value = _children.removeAt(0);
+    final Node value = _children.first;
+    final bool removed = value.unlink(path: 0);
+    if (removed) {
+      throw Exception(
+        'couldn\'t be removed. Tipically, this happens '
+        'The Node at ${0} '
+        'when the path of the Node is outdated. please, report '
+        'this issue here: https://github.com/Novident/novident-nodes/issues',
+      );
+    }
     onChange(
       NodeDeletion(
         originalPosition: 1,
@@ -621,14 +631,24 @@ abstract class NodeContainer extends Node {
     bool shouldNotify = true,
     bool propagateNotifications = false,
   }) {
-    final Node value = _children.removeLast();
+    final Node value = _children.last;
+    final int lastPosition = _children.length;
+    final bool removed = value.unlink(path: lastPosition - 1);
+    if (!removed) {
+      throw Exception(
+        'couldn\'t be removed. Tipically, this happens '
+        'The Node at ${lastPosition - 1} '
+        'when the path of the Node is outdated. please, report '
+        'this issue here: https://github.com/Novident/novident-nodes/issues',
+      );
+    }
     onChange(
       NodeDeletion(
-        originalPosition: _children.length,
+        originalPosition: lastPosition,
         sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel),
         inNode: clone(),
         newState: value.clone()..details.detachOwner(),
-        oldState: value.clone(),
+        oldState: value.copyWith(details: value.details.copyWith(owner: this)),
       ),
     );
     if (shouldNotify) notify(propagate: propagateNotifications);
@@ -646,11 +666,12 @@ abstract class NodeContainer extends Node {
   }) {
     Node? node;
     int indexAt = 0;
+    final NodeContainer oldStateOwner = clone();
     for (int i = 0; i < length; i++) {
       indexAt = i;
       node = _children.elementAt(i);
       if (callback(node)) {
-        _children.removeAt(i);
+        node.unlink(path: i);
         break;
       }
       node = null;
@@ -660,12 +681,12 @@ abstract class NodeContainer extends Node {
     }
     onChange(
       NodeDeletion(
-        originalPosition: indexAt,
+        originalPosition: indexAt + 1,
         sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel),
         inNode: clone(),
-        newState:
-            node.copyWith(details: node.details.copyWith(owner: null)).clone(),
-        oldState: node.clone(),
+        newState: node.copyWith(details: node.details.copyWith(owner: null)),
+        oldState:
+            node.copyWith(details: node.details.copyWith(owner: oldStateOwner)),
       ),
     );
     if (shouldNotify) notify(propagate: propagateNotifications);
@@ -681,14 +702,25 @@ abstract class NodeContainer extends Node {
     bool shouldNotify = true,
     bool propagateNotifications = false,
   }) {
-    final Node value = _children.removeAt(index);
+    final Node value = _children[index];
+    final bool removed = value.unlink(path: index);
+    if (removed) {
+      throw Exception(
+        'couldn\'t be removed. Tipically, this happens '
+        'The Node at $index '
+        'when the path of the Node is outdated. please, report '
+        'this issue here: https://github.com/Novident/novident-nodes/issues',
+      );
+    }
     onChange(
       NodeDeletion(
-        originalPosition: index,
+        originalPosition: index + 1,
         sourceOwner: jumpToParent(stopAt: (Node node) => node.isAtRootLevel),
         inNode: clone(),
         newState: value.clone()..details.detachOwner(),
-        oldState: value.clone(),
+        oldState: value.copyWith(
+          details: value.details.copyWith(owner: this),
+        ),
       ),
     );
     if (shouldNotify) notify(propagate: propagateNotifications);
@@ -747,8 +779,11 @@ abstract class NodeContainer extends Node {
   }
 
   /// Updates the child node at the specified index.
-  void updateAt(int index, Node newNodeState,
-      {bool propagateNotifications = false}) {
+  void updateAt(
+    int index,
+    Node newNodeState, {
+    bool propagateNotifications = false,
+  }) {
     if (index < 0) return;
     onChange(
       NodeUpdate(

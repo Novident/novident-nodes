@@ -1,3 +1,12 @@
+## 1.1.7
+
+* Fix: `verticalMove` is not working as expected when `down` is true.
+* Feat: added `nextSibling`, `previousSibling`, `hasNextSibling`, `hasPreviousSibling` methods.
+* Feat: added `unlink` method to removed a `Node` directly without calling the `owner`.
+* Feat: added `createNodeId` static method for `NodeDetails` class to create ids that are ready to be used for any new `Node`
+* Chore: added `toString` method definition for `NodeChange` and subclasses.
+* Chore: general improvements in the `NodeContainer` API and `children` management.
+
 ## 1.1.6
 
 * Fix: some changes are not being notifier to the attached listeners.

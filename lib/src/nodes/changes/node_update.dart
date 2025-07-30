@@ -34,4 +34,12 @@ class NodeUpdate extends NodeChange {
           oldState,
         ],
       );
+
+  @override
+  String toString() {
+    return 'NodeUpdate('
+        'OldState: $oldState, '
+        'newState: $newState, '
+        ')';
+  }
 }

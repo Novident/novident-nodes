@@ -45,4 +45,8 @@ abstract class NodeChange {
   @override
   @mustBeOverridden
   int get hashCode;
+
+  @mustBeOverridden
+  @override
+  String toString();
 }

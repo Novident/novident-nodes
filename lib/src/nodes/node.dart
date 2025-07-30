@@ -53,8 +53,8 @@ abstract class Node extends NodeNotifier
     NodeContainer? highestOwner = owner;
     while (true) {
       final int ownerIndex = highestOwner?.index ?? -2;
-      highestOwner = highestOwner!.owner;
       if (ownerIndex == -2) break;
+      highestOwner = highestOwner!.owner;
       path.add(ownerIndex);
       if (highestOwner == null) break;
     }
@@ -144,10 +144,7 @@ abstract class Node extends NodeNotifier
     if (index != null && index < 0) return false;
     final Node exactClone = node.clone();
     final NodeContainer? oldOwner = node.owner;
-    oldOwner?.removeWhere(
-      (Node n) => n.id == node.id,
-      shouldNotify: false,
-    );
+    node.unlink();
     index == null || (index >= newOwner.length || index < 0)
         ? newOwner.add(node, shouldNotify: false)
         : newOwner.insert(index, node, shouldNotify: false);
@@ -196,12 +193,13 @@ abstract class Node extends NodeNotifier
     if (owner == null) return;
     final int nodeIndex = index;
     final bool needMoveOutside =
-        down ? nodeIndex >= owner!.length : nodeIndex == 0;
+        down ? nodeIndex + 1 >= owner!.length : nodeIndex == 0;
     if (!allowMoveToAncestor && needMoveOutside) {
       return;
     }
     if (needMoveOutside) {
-      final NodeContainer? upperOwner = owner?.owner;
+      // we get the owner of the current owner
+      final NodeContainer? upperOwner = owner!.owner;
       if (upperOwner != null) {
         final int ownerIndex = owner!.index;
         int effectiveNextIndex = 0;
@@ -235,6 +233,65 @@ abstract class Node extends NodeNotifier
       : (owner as NodeContainer).indexWhere(
           (Node node) => node.id == id,
         );
+
+  /// Unlink this [Node] from its parent list
+  @mustCallSuper
+  bool unlink({int? path}) {
+    if (owner != null) {
+      final int effectiveIndex = path ?? index;
+      if (effectiveIndex <= -1) {
+        return false;
+      }
+      final Node node = owner!.elementAt(effectiveIndex);
+      if (node.id == id) {
+        owner!.children.removeAt(effectiveIndex);
+        details.owner = null;
+        return true;
+      }
+      int oldLength = owner!.length;
+      // Probably, at this point, we have an outdated index
+      // path, and we need to remove manually the Node
+      // from its owner
+      owner!.children.removeWhere((Node n) => n.id == id);
+      // verify if the node was removed successfully
+      // from the owner
+      if (oldLength != owner!.length) {
+        details.owner = null;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Return the next [Node] if has [owner] and if this
+  /// [Node] is not at the end of the [List]
+  @mustCallSuper
+  Node? get nextSibling {
+    final int efIndex = index;
+    return owner == null
+        ? null
+        : efIndex + 1 >= owner!.children.length
+            ? null
+            : owner?.children[efIndex + 1];
+  }
+
+  /// Return the previous [Node] if has [owner] and if this
+  /// [Node] is not the first element of the [List]
+  @mustCallSuper
+  Node? get previousSibling {
+    final int efIndex = index;
+    return owner == null
+        ? null
+        : efIndex == 0
+            ? null
+            : owner?.children[efIndex - 1];
+  }
+
+  /// Return if this node has a node in front
+  bool get hasNextSibling => nextSibling != null;
+
+  /// Return if this node has a node behind
+  bool get hasPreviousSibling => previousSibling != null;
 
   /// Traverses up the parent hierarchy until reaching a stopping condition.
   ///

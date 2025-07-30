@@ -57,4 +57,12 @@ class NodeInsertion extends NodeChange {
           oldState,
         ],
       );
+
+  @override
+  String toString() {
+    return 'NodeInsertion('
+        'from (direct owner): $from, '
+        'to (direct owner): $to, '
+        ')';
+  }
 }
