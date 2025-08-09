@@ -1,3 +1,10 @@
+## 1.1.9
+
+* Fix: `elementAtOrNull` is always returning null even if the `index` is a valid num.
+* Fix: `unlink` method, cannot notify to the listeners when required.
+* Feat: added `atPath` method.
+* Chore: general improvements in the API.
+
 ## 1.1.8
 
 * Fix: `removeAt` and `removeFirst` are throwing exceptions when no required.

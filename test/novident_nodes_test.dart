@@ -334,6 +334,62 @@ void main() {
     expect(node.first.castToDir.first.castToFile.name, 'File 2');
     expect(node.first.castToDir.first.castToFile.id, 'test 3');
   });
+
+  test('should found the node at list of paths passed', () {
+    final DirectoryNode node = DirectoryNode(
+      details: NodeDetails.zero(),
+      children: <Node>[
+        DirectoryNode(
+          details: NodeDetails.zero(),
+          children: <Node>[
+            DirectoryNode(
+              details: NodeDetails.byId(level: 0, id: 'testing path'),
+              children: <Node>[],
+              name: 'Dir 3',
+            ),
+          ],
+          name: 'Dir 2',
+        ),
+      ],
+      name: 'Dir',
+    );
+    expect(node.atPath(<int>[0, 0]), isNotNull);
+    expect(node.atPath(<int>[0, 0])?.id, 'testing path');
+  });
+
+  test(
+      'should break the path when found '
+      'unexpected node while path is not empty yet', () {
+    final DirectoryNode node = DirectoryNode(
+      details: NodeDetails.zero(),
+      children: <Node>[
+        DirectoryNode(
+          details: NodeDetails.zero(),
+          children: <Node>[
+            DirectoryNode(
+              details: NodeDetails.byId(level: 0, id: 'testing path'),
+              children: <Node>[
+                FileNode(
+                  details: NodeDetails.byId(level: 0, id: 'testing path 3'),
+                  content: '',
+                  name: 'file 4',
+                ),
+              ],
+              name: 'Dir 3',
+            ),
+            FileNode(
+              details: NodeDetails.byId(level: 0, id: 'testing path 2'),
+              content: '',
+              name: 'file 3',
+            ),
+          ],
+          name: 'Dir 2',
+        ),
+      ],
+      name: 'Dir',
+    );
+    expect(node.atPath(<int>[0, 1, 0]), isNull);
+  });
 }
 
 extension on Node {

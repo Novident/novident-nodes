@@ -166,8 +166,10 @@ abstract class NodeContainer extends Node {
   }
 
   @override
-  Iterable<Node> collectNodes(
-      {required Predicate shouldGetNode, bool deep = false}) {
+  Iterable<Node> collectNodes({
+    required Predicate shouldGetNode,
+    bool deep = false,
+  }) {
     final List<Node> nodes = <Node>[];
     for (final Node child in children) {
       if (shouldGetNode(child)) {
@@ -181,6 +183,78 @@ abstract class NodeContainer extends Node {
       }
     }
     return <Node>[...nodes];
+  }
+
+  /// Traverses the node hierarchy using index-based path addressing.
+  ///
+  /// The [path] represents a sequence of child indices starting from the root level,
+  /// where:
+  /// - First element: Index of the top-level node (direct child of root)
+  /// - Intermediate elements: Indices of nested [NodeContainer] children
+  /// - Last element: Index of the target node (either [Node] or [NodeContainer])
+  ///
+  /// ## Path Examples
+  ///
+  /// Consider this node structure:
+  /// ```dart
+  /// Root
+  /// ├── 0: NodeContainer A
+  /// │   ├── 0: Node X
+  /// │   ├── 1: NodeContainer B
+  /// │   │   ├── 0: Node Y
+  /// │   │   └── 1: Node Z
+  /// │   └── 2: Node W
+  /// └── 1: Node V
+  /// ```
+  ///
+  /// Valid paths:
+  /// ```dart
+  /// [0]      // Returns NodeContainer A
+  /// [1]      // Returns Node V (leaf)
+  /// [0, 0]   // Returns Node X (leaf)
+  /// [0, 1]   // Returns NodeContainer B
+  /// [0, 1, 0] // Returns Node Y (leaf)
+  /// [0, 1, 1] // Returns Node Z (leaf)
+  /// [0, 2]   // Returns Node W (leaf)
+  /// ```
+  ///
+  /// Invalid paths that will return null:
+  /// ```dart
+  /// [0, 0, 0] // Node X cannot have children
+  /// [1, 0]    // Node V cannot have children
+  /// [2]       // Index out of bounds at root level
+  /// [0, 3]    // Index out of bounds in NodeContainer A
+  /// ```
+  ///
+  /// Returns:
+  /// - The found node if the complete path exists
+  /// - null if:
+  ///   - Path is empty
+  ///   - Any index is out of bounds
+  ///   - A non-container node is encountered before path completion
+  Node? atPath(List<int> path) {
+    if (path.isEmpty) return null;
+    if (path.length == 1) {
+      return elementAtOrNull(path[0]);
+    }
+
+    final List<int> temp = <int>[...path];
+    Node? node = elementAtOrNull(temp.removeAt(0));
+    while (temp.isNotEmpty) {
+      if (node == null) break;
+
+      if (node is NodeContainer) {
+        node = node.elementAtOrNull(temp.removeAt(0));
+      }
+
+      // if we found a node that has no children abilities
+      // and the list of paths is not empty yet,
+      // we just prefer break the loop to avoid
+      // unexpected behaviors
+      if (node is! NodeContainer && temp.isNotEmpty) return null;
+    }
+
+    return node;
   }
 
   @override
@@ -210,9 +284,8 @@ abstract class NodeContainer extends Node {
     for (int i = reversed ? length - 1 : 0;
         reversed ? i >= 0 : i < length;
         reversed ? i-- : i++) {
-      final Node node = elementAt(i);
-      if (shouldGetNode(node)) {
-        return node;
+      if (shouldGetNode(_children[i])) {
+        return _children[i];
       }
     }
     return null;
@@ -222,7 +295,7 @@ abstract class NodeContainer extends Node {
   int countAllNodes({required Predicate countNode}) {
     int count = 0;
     for (int i = 0; i < length; i++) {
-      count += elementAt(i).countAllNodes(
+      count += _children[i].countAllNodes(
         countNode: countNode,
       );
     }
@@ -233,8 +306,7 @@ abstract class NodeContainer extends Node {
   int countNodes({required Predicate countNode}) {
     int count = 0;
     for (int i = 0; i < length; i++) {
-      final Node node = elementAt(i);
-      count += node.countNodes(countNode: countNode);
+      count += _children[i].countNodes(countNode: countNode);
     }
     return count;
   }
@@ -242,8 +314,7 @@ abstract class NodeContainer extends Node {
   @override
   bool exist(String nodeId) {
     for (int i = 0; i < length; i++) {
-      final Node node = elementAt(i);
-      if (node.id == nodeId) {
+      if (_children[i].id == nodeId) {
         return true;
       }
     }
@@ -301,7 +372,7 @@ abstract class NodeContainer extends Node {
 
   /// Gets the child node at the specified index or null if out of bounds.
   Node? elementAtOrNull(int index) {
-    return index < 0 || index >= length ? _children[index] : null;
+    return index < 0 || index >= length ? null : _children[index];
   }
 
   /// Checks if the collection contains the given node.

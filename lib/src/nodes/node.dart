@@ -45,18 +45,19 @@ abstract class Node extends NodeNotifier
     }
   }
 
+  /// Find the full depth path of this [Node]
   List<int> findNodePath() {
-    if (owner == null) return <int>[];
+    if (this.owner == null) return <int>[];
     final int i = index;
     if (i == -2) return <int>[];
     final List<int> path = <int>[i];
-    NodeContainer? highestOwner = owner;
+    NodeContainer? owner = this.owner;
     while (true) {
-      final int ownerIndex = highestOwner?.index ?? -2;
+      final int ownerIndex = owner?.index ?? -2;
       if (ownerIndex == -2) break;
-      highestOwner = highestOwner!.owner;
+      owner = owner!.owner;
       path.add(ownerIndex);
-      if (highestOwner == null) break;
+      if (owner == null) break;
     }
 
     return <int>[...path.reversed];
@@ -236,7 +237,12 @@ abstract class Node extends NodeNotifier
 
   /// Unlink this [Node] from its parent list
   @mustCallSuper
-  bool unlink({int? path}) {
+  bool unlink({
+    int? path,
+    bool shouldNotify = false,
+    bool propagateNotify = false,
+    bool notifyParticularChange = false,
+  }) {
     if (owner != null) {
       final int effectiveIndex = path ?? index;
       if (effectiveIndex <= -1) {
@@ -246,6 +252,22 @@ abstract class Node extends NodeNotifier
       if (node.id == id) {
         owner!.children.removeAt(effectiveIndex);
         details.owner = null;
+        if (notifyParticularChange) {
+          owner!.onChange(
+            NodeDeletion(
+              originalPosition: effectiveIndex + 1,
+              inNode: owner!.clone(),
+              sourceOwner: owner!.jumpToParent().clone(),
+              newState: this,
+              oldState: copyWith(
+                details: details.copyWith(owner: owner),
+              ),
+            ),
+          );
+        }
+        if (shouldNotify) {
+          notify(propagate: propagateNotify);
+        }
         return true;
       }
       int oldLength = owner!.length;
@@ -257,6 +279,9 @@ abstract class Node extends NodeNotifier
       // from the owner
       if (oldLength != owner!.length) {
         details.owner = null;
+        if (shouldNotify) {
+          notify(propagate: propagateNotify);
+        }
         return true;
       }
     }
