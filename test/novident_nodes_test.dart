@@ -288,6 +288,25 @@ void main() {
     expect(node.firstOrNull, isNull);
   });
 
+  test('should remove node at index correctly', () {
+    final DirectoryNode node = DirectoryNode(
+      details: NodeDetails.zero(),
+      children: <Node>[
+        FileNode(
+          details: NodeDetails.byId(id: 'test', level: 1),
+          content: '',
+          name: 'File 1',
+        )
+      ],
+      name: 'Dir',
+    );
+    expect(node.first.owner, node);
+    final Node removedNode = node.removeAt(0);
+    expect(node.length, 0);
+    expect(node.firstOrNull, isNull);
+    expect(removedNode.id, 'test');
+  });
+
   test('should add subNode correctly', () {
     final DirectoryNode node = DirectoryNode(
       details: NodeDetails.zero(),

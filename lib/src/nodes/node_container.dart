@@ -603,7 +603,7 @@ abstract class NodeContainer extends Node {
   }) {
     final Node value = _children.first;
     final bool removed = value.unlink(path: 0);
-    if (removed) {
+    if (!removed) {
       throw Exception(
         'couldn\'t be removed. Tipically, this happens '
         'The Node at ${0} '
@@ -704,7 +704,7 @@ abstract class NodeContainer extends Node {
   }) {
     final Node value = _children[index];
     final bool removed = value.unlink(path: index);
-    if (removed) {
+    if (!removed) {
       throw Exception(
         'couldn\'t be removed. Tipically, this happens '
         'The Node at $index '

@@ -1,3 +1,7 @@
+## 1.1.8
+
+* Fix: `removeAt` and `removeFirst` are throwing exceptions when no required.
+
 ## 1.1.7
 
 * Fix: `verticalMove` is not working as expected when `down` is true.
