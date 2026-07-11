@@ -8,7 +8,7 @@ abstract class NodeContainer extends Node {
   final List<Node> _children;
 
   /// Callback for handling node change notifications
-  List<NodeNotifierChangeCallback>? _notifierCallbacks;
+  List<ChangeEventCallback>? _eventListeners;
 
   NodeContainer({
     required List<Node> children,
@@ -23,18 +23,15 @@ abstract class NodeContainer extends Node {
   bool get isExpanded;
 
   @mustCallSuper
-  bool get hasNotifiersAttached => _notifierCallbacks?.isNotEmpty ?? false;
-
-  @mustCallSuper
-  bool get hasNoNotifiersAttached => _notifierCallbacks?.isEmpty ?? true;
+  bool get hasEventListeners => _eventListeners?.isNotEmpty ?? false;
 
   /// Handles node change events by propagating them to registered listeners.
   ///
   /// [change]: The change event to propagate
   @mustCallSuper
   void onChange(NodeChange change) {
-    if (_notifierCallbacks == null) return;
-    for (final NodeNotifierChangeCallback notification in _notifierCallbacks!) {
+    if (_eventListeners == null) return;
+    for (final ChangeEventCallback notification in _eventListeners!) {
       notification(change);
     }
   }
@@ -46,23 +43,22 @@ abstract class NodeContainer extends Node {
   /// - [callback]: The notification handler to attach.
   /// - [attachToChildren]: Determines if the notifier will be attached into it's children too.
   @mustCallSuper
-  void attachNotifier(
-    NodeNotifierChangeCallback callback, {
+  void attachListener(
+    ChangeEventCallback callback, {
     bool attachToChildren = false,
     bool strict = true,
   }) {
     if (strict) {
-      if (_notifierCallbacks != null &&
-          _notifierCallbacks!.contains(callback)) {
+      if (_eventListeners != null && _eventListeners!.contains(callback)) {
         return;
       }
     }
-    _notifierCallbacks ??= <NodeNotifierChangeCallback>[];
-    _notifierCallbacks?.add(callback);
+    _eventListeners ??= <ChangeEventCallback>[];
+    _eventListeners?.add(callback);
     if (attachToChildren) {
       for (final Node child in _children) {
         if (child is NodeContainer) {
-          child.attachNotifier(callback);
+          child.attachListener(callback);
         }
       }
     }
@@ -74,22 +70,22 @@ abstract class NodeContainer extends Node {
   /// - [detachInChildren]: Determines if the notifier will be removed from
   /// it's children too.
   @mustCallSuper
-  void detachNotifier(
-    NodeNotifierChangeCallback callback, {
+  void detachListener(
+    ChangeEventCallback callback, {
     bool detachInChildren = false,
   }) {
-    if (_notifierCallbacks == null) return;
-    for (int i = 0; i < _notifierCallbacks!.length; i++) {
-      final NodeNotifierChangeCallback? notify = _notifierCallbacks?[i];
+    if (_eventListeners == null) return;
+    for (int i = 0; i < _eventListeners!.length; i++) {
+      final ChangeEventCallback? notify = _eventListeners?[i];
       if (notify == callback) {
-        _notifierCallbacks?.removeAt(i);
+        _eventListeners?.removeAt(i);
         break;
       }
     }
     if (detachInChildren) {
       for (final Node child in _children) {
         if (child is NodeContainer) {
-          child.detachNotifier(callback);
+          child.detachListener(callback);
         }
       }
     }
@@ -102,25 +98,25 @@ abstract class NodeContainer extends Node {
   @mustCallSuper
   void detachNotifiers({
     bool detachChildren = true,
-    List<NodeNotifierChangeCallback>? excludeFromRemove,
+    List<ChangeEventCallback>? excludeFromRemove,
   }) {
-    if (_notifierCallbacks == null) return;
+    if (_eventListeners == null) return;
     if (excludeFromRemove != null) {
-      final List<NodeNotifierChangeCallback> cloneList =
-          <NodeNotifierChangeCallback>[..._notifierCallbacks!];
-      for (int i = 0; i < _notifierCallbacks!.length; i++) {
-        final NodeNotifierChangeCallback notifier =
-            _notifierCallbacks!.elementAt(i);
+      final List<ChangeEventCallback> cloneList = <ChangeEventCallback>[
+        ..._eventListeners!
+      ];
+      for (int i = 0; i < _eventListeners!.length; i++) {
+        final ChangeEventCallback notifier = _eventListeners!.elementAt(i);
         if (excludeFromRemove.contains(notifier)) {
           continue;
         }
         cloneList.removeAt(i);
       }
-      _notifierCallbacks!
+      _eventListeners!
         ..clear()
         ..addAll(cloneList);
     } else {
-      _notifierCallbacks = null;
+      _eventListeners = null;
     }
     if (detachChildren) {
       for (final Node child in _children) {
@@ -448,6 +444,23 @@ abstract class NodeContainer extends Node {
     );
   }
 
+  /// Ensures that every children of this [Node]
+  /// will have the correct level assigned
+  ///
+  /// [level] property of this [Node] must be assigned or
+  /// updated before calling this method to ensure the proper
+  /// expected output value
+  void redepthDescendants({
+    bool shouldNotify = true,
+    bool propagate = true,
+  }) {
+    Node.redepthDescendants(
+      this,
+      shouldNotify: shouldNotify,
+      propagate: propagate,
+    );
+  }
+
   /// Move the [Node] passed to a new parent.
   ///
   /// * [node]: The [Node] that you want to move
@@ -464,6 +477,7 @@ abstract class NodeContainer extends Node {
     bool ensureDeletion = true,
   }) {
     if (node.index < 0 || insertIndex != null && insertIndex < 0) return false;
+    // it just exists for events
     final Node exactClone = node.clone();
     // if has no parent, them we can ignore the [removed] flag
     final bool removed = node.owner == null ? true : node.unlink();
@@ -478,11 +492,19 @@ abstract class NodeContainer extends Node {
     } else {
       to.insert(insertIndex, node, shouldNotify: false);
     }
+    final int storedIndex =
+        (insertIndex != null && insertIndex >= 0 && insertIndex < to.length)
+            ? insertIndex
+            : to.length - 1;
+    final Node storedNode = to.elementAt(storedIndex);
+    if (storedNode is NodeContainer) {
+      storedNode.redepthDescendants(shouldNotify: false);
+    }
     final NodeMoveChange change = NodeMoveChange(
-      index: insertIndex ?? to.length,
+      index: storedIndex,
       to: to,
       from: this,
-      newState: node.cloneWithNewLevel(to.childrenLevel),
+      newState: storedNode,
       oldState: exactClone,
     );
     onChange(change);
@@ -506,9 +528,10 @@ abstract class NodeContainer extends Node {
     bool shouldNotify = true,
     bool propagate = true,
   }) {
-    final int index = _children.indexWhere((Node node) => node.id == id);
+    final int index = indexWhere((Node node) => node.id == id);
     if (index < 0) return false;
     final Node node = elementAt(index);
+    // it just exists for events
     final Node exactClone = node.clone();
     final bool removed = node.unlink();
     if (!removed) {
@@ -522,11 +545,20 @@ abstract class NodeContainer extends Node {
     } else {
       to.insert(insertIndex, node, shouldNotify: false);
     }
+    // Re-depth internal children when moving a NodeContainer
+    final int storedIndex =
+        (insertIndex != null && insertIndex >= 0 && insertIndex < to.length)
+            ? insertIndex
+            : to.length - 1;
+    final Node storedNode = to.elementAt(storedIndex);
+    if (storedNode is NodeContainer) {
+      storedNode.redepthDescendants(shouldNotify: false);
+    }
     final NodeMoveChange change = NodeMoveChange(
       to: to,
-      index: insertIndex ?? to.length,
+      index: storedIndex,
       from: this,
-      newState: node.cloneWithNewLevel(to.childrenLevel),
+      newState: storedNode,
       oldState: exactClone,
     );
     onChange(change);
@@ -801,6 +833,7 @@ abstract class NodeContainer extends Node {
   /// Update a child [Node] if it is founded, or insert if it does not exist
   void update(
     Node newNodeState, {
+    bool shouldNotify = true,
     bool propagateNotifications = false,
     bool insertIfNotExist = true,
   }) {
@@ -824,14 +857,17 @@ abstract class NodeContainer extends Node {
     if (newNodeState.owner != this) {
       newNodeState.owner = this;
     }
-    _children[index] = newNodeState.cloneWithNewLevel(level + 1);
-    notify(propagate: propagateNotifications);
+    _children[index] = newNodeState.cloneWithNewLevel(childrenLevel);
+    if (shouldNotify) {
+      notify(propagate: propagateNotifications);
+    }
   }
 
   /// Updates the child node by a predicate.
   void updateWhere(
     Node newNodeState,
     ConditionalPredicate<Node> predicate, {
+    bool shouldNotify = true,
     bool propagateNotifications = false,
   }) {
     final int index = _children.indexWhere(predicate);
@@ -845,14 +881,17 @@ abstract class NodeContainer extends Node {
     if (newNodeState.owner != this) {
       newNodeState.owner = this;
     }
-    _children[index] = newNodeState.cloneWithNewLevel(level + 1);
-    notify(propagate: propagateNotifications);
+    _children[index] = newNodeState.cloneWithNewLevel(childrenLevel);
+    if (shouldNotify) {
+      notify(propagate: propagateNotifications);
+    }
   }
 
   /// Updates the child node at the specified index.
   void updateAt(
     int index,
     Node newNodeState, {
+    bool shouldNotify = true,
     bool propagateNotifications = false,
   }) {
     if (index < 0) return;
@@ -865,8 +904,10 @@ abstract class NodeContainer extends Node {
     if (newNodeState.owner != this) {
       newNodeState.owner = this;
     }
-    _children[index] = newNodeState.cloneWithNewLevel(level + 1);
-    notify(propagate: propagateNotifications);
+    _children[index] = newNodeState.cloneWithNewLevel(childrenLevel);
+    if (shouldNotify) {
+      notify(propagate: propagateNotifications);
+    }
   }
 
   /// Updates the child node at the specified index.
@@ -881,7 +922,7 @@ abstract class NodeContainer extends Node {
     if (newNodeState.owner != this) {
       newNodeState.owner = this;
     }
-    _children[index] = newNodeState.cloneWithNewLevel(level + 1);
+    _children[index] = newNodeState.cloneWithNewLevel(childrenLevel);
     notify(propagate: true);
   }
 

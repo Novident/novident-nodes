@@ -45,7 +45,7 @@ void main() {
     expect(node.isNotEmpty, isTrue);
     expect(node.first.owner, node);
     NodeChange? change;
-    node.attachNotifier((NodeChange inChange) {
+    node.attachListener((NodeChange inChange) {
       change = inChange;
     });
     expect(change, isNull);
@@ -87,7 +87,7 @@ void main() {
     );
     expect(node.isNotEmpty, isTrue);
     NodeChange? change;
-    node.attachNotifier((NodeChange inChange) {
+    node.attachListener((NodeChange inChange) {
       change = inChange;
     });
     expect(change, isNull);
@@ -129,7 +129,7 @@ void main() {
     expect(node.first.details.id, 'test');
     expect(node.last.details.id, 'test 2');
     NodeChange? change;
-    node.attachNotifier((NodeChange inChange) {
+    node.attachListener((NodeChange inChange) {
       change = inChange;
     });
     expect(change, isNull);

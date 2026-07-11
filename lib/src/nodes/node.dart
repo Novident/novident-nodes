@@ -53,8 +53,8 @@ abstract class Node extends NodeNotifier
     final List<int> path = <int>[i];
     NodeContainer? owner = this.owner;
     while (true) {
-      final int ownerIndex = owner?.index ?? -2;
-      if (ownerIndex == -2) break;
+      final int? ownerIndex = owner?.index;
+      if (ownerIndex == -2 || ownerIndex == null) break;
       owner = owner!.owner;
       path.add(ownerIndex);
       if (owner == null) break;
@@ -63,75 +63,148 @@ abstract class Node extends NodeNotifier
     return <int>[...path.reversed];
   }
 
-  /// Validates if a node can be moved to a target location in the hierarchy by checking these rules:
+  /// Validates if a node can be moved to a target location in the hierarchy.
   ///
-  /// Self-move prevention
-  ///
-  ///  * Blocks moving a node to itself (node == target)
-  ///
-  /// Container constraints
-  ///
-  ///  * Prevents moving containers into their own descendants
-  ///  * Requires target to be a NodeContainer (when inside=true)
-  ///
-  /// Ownership validation
-  ///
-  ///  * Rejects moves to parentless targets
-  ///  * Blocks redundant moves (when already a child of target)
-  ///
-  /// Hierarchy integrity
-  ///
-  ///  Blocks moves that would:
-  ///
-  ///   * Create circular references
-  ///   * Violate parent-child relationships (inside = true blocks ancestor moves)
-  ///   * Exceed optional depth limits (maxDepthLevel)
+  /// [node]: The node to move.
+  /// [target]: The destination node. When [inside] is true, [target] must be
+  ///   a [NodeContainer]; when [inside] is false, [target] is the reference
+  ///   node for the adjacent position.
+  /// [inside]: Whether to move [node] inside [target] (true) or adjacent to
+  ///   it (false), placing it in [target]'s owner at the same level.
+  /// [insertIndex]: The exact insertion index within the destination container
+  ///   (when [inside]=true) or the desired position adjacent to [target]
+  ///   (when [inside]=false). When null, appends to the end. The index refers
+  ///   to the position *before* [node] is removed from its current owner.
+  /// [isSwapMove]: When true, bypasses the direct-ancestor re-insertion check
+  ///   (used when two nodes swap positions within the same owner).
+  /// [maxDepthLevel]: Optional absolute depth limit. Nodes cannot be placed
+  ///   deeper than this level (1-indexed, where 0 is root).
   static bool canMoveTo({
     required Node node,
     required Node target,
     bool inside = true,
+    int? insertIndex,
+    @Deprecated(
+      'isSwapMove is not a required parameter now. It is not used and will be removed in future releases',
+    )
     bool isSwapMove = false,
     int? maxDepthLevel,
   }) {
-    // 1. Basic invalid cases
-    if (node.id == target.id) return false; // Can't move to self
+    // 1. Self-move prevention
+    if (node.id == target.id) return false;
 
-    // 2. Prevent moving a container into its own descendants
+    // 2. insertIndex bounds
+    if (insertIndex != null && insertIndex < 0) return false;
+
+    // 3. Target must have an owner when positioning adjacent (inside=false)
+    //    since we need to insert into target.owner's children list.
+    if (!inside && target.owner == null) return false;
+
+    // 4. Circular reference: prevent moving a container into its own subtree.
+    //    Guard: only containers can be ancestors, and target needs an owner
+    //    chain for jumpToParent to traverse safely.
     if (node is NodeContainer) {
       final bool isOwnDescendant =
           target.jumpToParent(stopAt: (Node p) => p.id == node.id).id ==
               node.id;
-
       if (isOwnDescendant) return false;
     }
 
-    // 3. Check if target is a direct ancestor of the node
+    // 5. Direct ancestor: prevent re-inserting a node into its current parent
+    //    when inside=true (it's already there). Allow when a real position
+    //    change is requested via insertIndex, or when isSwapMove is set.
     final bool isAncestor = node.owner?.id == target.id;
-
-    // Is the descendant node is trying to move into its ancestor
-    //
-    // When [isSwapMove] is true, means that we are swapping the positions
-    // between two nodes into a same node owner (so, we don't need to
-    // make this check)
     if (isAncestor && inside && !isSwapMove) {
-      // Already a direct child of target
-      return false;
+      // If no explicit index or the index doesn't change position → block.
+      if (insertIndex == null) return false;
+      // Mirror moveTo logic: removal shrinks length by 1, then >= length = append.
+      final int nodeIdx = node.index;
+      final int newLen = (target as NodeContainer).length - 1;
+      final int landPos =
+          insertIndex >= newLen ? newLen : insertIndex;
+      if (landPos == nodeIdx) return false;
     }
 
-    // 4. Type-specific validation
-    if (inside && target is! NodeContainer) {
-      // Can only move to containers (unless special cases apply)
-      return false;
-    }
+    // 6. Type validation: when inside=true, target must be a container.
+    if (inside && target is! NodeContainer) return false;
 
-    // 5. Level validation (optional - if you have hierarchy depth limits)
-    if (maxDepthLevel != null && inside) {
-      if (target.level >= maxDepthLevel) {
-        // Prevent moving too deep in the hierarchy
-        return false;
+    // 7. No-op detection: prevents moves that would leave the node in the
+    //    same effective position after accounting for removal-then-insertion.
+    //    The logic mirrors Node.moveTo: after node.unlink() shrinks the list
+    //    by 1, an insertIndex >= newLength is treated as append.
+    if (!isSwapMove) {
+      final int nodeIndex = node.index;
+      final bool sameOwner = node.owner?.id == target.owner?.id;
+
+      if (inside && target is NodeContainer && target.id == node.owner?.id) {
+        // Moving within the same owner.
+        final int newLen = target.length - 1; // after removal
+        if (insertIndex == null) {
+          // Appending: the new last position is newLen.
+          if (newLen == nodeIndex) return false;
+        } else {
+          // If insertIndex >= newLen, moveTo treats it as append.
+          final int landPos = insertIndex >= newLen ? newLen : insertIndex;
+          if (landPos == nodeIndex) return false;
+        }
+      }
+
+      if (!inside && sameOwner) {
+        final int targetIndex = target.index;
+        if (targetIndex == nodeIndex) return false; // same position
+        if (insertIndex != null) {
+          // Direction-aware: compute landing position after removal.
+          final int newLen = (node.owner as NodeContainer).length - 1;
+          final int landPos = insertIndex >= newLen ? newLen : insertIndex;
+          if (landPos == nodeIndex) return false;
+        } else {
+          // Without explicit index, conservatively block if already adjacent
+          if (nodeIndex + 1 == targetIndex) return false;
+          if (targetIndex + 1 == nodeIndex) return false;
+        }
       }
     }
+
+    // 8. Depth limit: the moved node lands at target.level + 1 when
+    //    inside=true. Check that the resulting depth doesn't exceed the cap.
+    if (maxDepthLevel != null && inside) {
+      if (target.level + 1 > maxDepthLevel) return false;
+    }
+
     return true;
+  }
+
+  /// Ensures that every children of this [Node]
+  /// will have the correct level assigned
+  ///
+  /// [level] property of this [Node] must be assigned or
+  /// updated before calling this method to ensure the proper
+  /// expected output value
+  static void redepthDescendants(
+    NodeContainer container, {
+    bool shouldNotify = true,
+    bool propagate = true,
+  }) {
+    for (int i = 0; i < container.children.length; i++) {
+      final Node child = container.children[i];
+      final Node reDepthed = child.clone();
+      container.updateAt(
+        i,
+        reDepthed,
+        shouldNotify: false,
+        propagateNotifications: false,
+      );
+      if (reDepthed is NodeContainer && reDepthed.isNotEmpty) {
+        redepthDescendants(
+          container.elementAt(
+            i,
+          ) as NodeContainer,
+        );
+      }
+    }
+    if (shouldNotify) {
+      container.notify(propagate: propagate);
+    }
   }
 
   /// Move the [Node] passed to a new parent.
@@ -143,17 +216,32 @@ abstract class Node extends NodeNotifier
     bool propagate = true,
   }) {
     if (index != null && index < 0) return false;
+    // it just exists for events
     final Node exactClone = node.clone();
     final NodeContainer? oldOwner = node.owner;
-    node.unlink();
+    final bool removed = node.owner == null ? true : node.unlink();
+    if (!removed) {
+      throw StateError(
+        'The node founded at $index '
+        'couldn\'t be removed in ${node.runtimeType}:${node.id}',
+      );
+    }
     index == null || (index >= newOwner.length || index < 0)
         ? newOwner.add(node, shouldNotify: false)
         : newOwner.insert(index, node, shouldNotify: false);
+    final int storedIndex =
+        (index != null && index >= 0 && index < newOwner.length)
+            ? index
+            : newOwner.length - 1;
+    final Node storedNode = newOwner.elementAt(storedIndex);
+    if (storedNode is NodeContainer) {
+      storedNode.redepthDescendants(shouldNotify: false);
+    }
     final NodeMoveChange change = NodeMoveChange(
       to: newOwner,
       from: oldOwner,
-      index: index ?? newOwner.length,
-      newState: node.cloneWithNewLevel(newOwner.childrenLevel),
+      index: index ?? newOwner.length - 1,
+      newState: storedNode,
       oldState: exactClone,
     );
     oldOwner?.onChange(change);
@@ -178,8 +266,8 @@ abstract class Node extends NodeNotifier
   /// NodeContainer (root)
   /// |
   /// ├── NodeContainer 1
-  /// |   |
-  /// |   └── LeafNode 1 (will be moved here) <──────────────────┐
+  /// |
+  /// ├── (will be moved here) <─────────────────────────────────┐
   /// |                                                          |
   /// └── NodeContainer 2                                        |
   ///     |                                                      |
@@ -342,12 +430,6 @@ abstract class Node extends NodeNotifier
   int get level => details.level;
 
   /// Whether this node is at the root level (level == 0).
-  @Deprecated('atRoot is no longer used and '
-      'will be removed in future releases. Use '
-      'isAtRootLevel instead.')
-  bool get atRoot => level == 0;
-
-  /// Whether this node is at the root level (level == 0).
   bool get isAtRootLevel => level == 0;
 
   /// The owning node of this node (alias for [parent]).
@@ -405,8 +487,10 @@ abstract class Node extends NodeNotifier
   Map<String, dynamic> toJson();
 
   @override
-  Iterable<Node> collectNodes(
-          {required Predicate shouldGetNode, bool deep = false}) =>
+  Iterable<Node> collectNodes({
+    required Predicate shouldGetNode,
+    bool deep = false,
+  }) =>
       shouldGetNode(this) ? <Node>[this] : <Node>[];
 
   @override

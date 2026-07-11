@@ -28,18 +28,7 @@ class DirectoryNode extends NodeContainer {
 
   /// adjust the depth level of the children
   void redepthChildren({int? alternativeLevel}) {
-    void redepth(List<Node> unformattedChildren, int currentLevel) {
-      for (int i = 0; i < unformattedChildren.length; i++) {
-        final Node node = unformattedChildren.elementAt(i);
-        final int childLevel = currentLevel + 1;
-        unformattedChildren[i] = node.cloneWithNewLevel(childLevel);
-        if (node is NodeContainer && node.isNotEmpty) {
-          redepth(node.children, childLevel);
-        }
-      }
-    }
-
-    redepth(children, alternativeLevel ?? level);
+    Node.redepthDescendants(this);
     notifyListeners();
   }
 

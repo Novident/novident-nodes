@@ -1,3 +1,22 @@
+## 1.2.0
+
+* Feat(breaking changes): renamed `attachNotifier` → `attachListener` for consistency with the new `ChangeEventCallback` typedef.
+* Feat(breaking changes): renamed `hasNotifiersAttached` → `hasEventListeners` and removed `hasNoNotifiersAttached` (use `!hasEventListeners` instead).
+* Feat(breaking changes): renamed typedef `NodeNotifierChangeCallback` → `ChangeEventCallback`.
+* Feat(breaking changes): removed deprecated `atRoot` getter from `Node`. Use `isAtRootLevel` instead.
+* Feat(breaking changes): added `insertIndex` parameter to `Node.canMoveTo` (positioned before `isSwapMove`). All parameters remain named so existing callers are unaffected.
+* Feat(breaking changes): `NodeContainer.update`, `updateWhere`, `updateAt` now accept `shouldNotify` (default `true`) to suppress notifications during internal operations like re-depting.
+* Deprecated: `isSwapMove` parameter in `canMoveTo`. With `insertIndex`, the method can now distinguish no-ops from legitimate reorders without it.
+* Feat: `canMoveTo` is now position-aware via `insertIndex`, enabling exact insertion position validation that mirrors `moveTo` logic (`>= length` = append). Includes no-op detection for same-owner same-position moves.
+* Feat: `redepthDescendants` static method on `Node` and instance method on `NodeContainer` that recursively reassigns depth levels to all descendants after moving a container.
+* Fix: `moveNode`, `moveNodeById`, and `Node.moveTo` now recursively re-depth all descendant levels when moving a `NodeContainer`, fixing incorrect depth hierarchies after relocation.
+* Fix: `canMoveTo` maxDepthLevel off-by-one: now validates `target.level + 1` against the limit instead of `target.level`.
+* Fix: `canMoveTo` jumpToParent guard prevents unsafe cast when `target` is an ownerless node.
+* Fix: `update`, `updateWhere`, `updateAt` now use `childrenLevel` instead of `level + 1` for correct child depth assignment.
+* Fix: `findNodePath` null safety: accepts `null` alongside `-2` as stop signal for `ownerIndex`.
+* Chore(test): 14 new tests for `moveNode`, `moveNodeById`, and `canMoveTo` covering re-depth, insertIndex, no-ops, maxDepthLevel, and edge cases.
+* Chore(test): 7 new tests for `canMoveTo` with `insertIndex` covering no-op detection, directional adjacent moves, and depth limits.
+
 ## 1.1.9
 
 * Fix: `elementAtOrNull` is always returning null even if the `index` is a valid num.
