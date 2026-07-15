@@ -481,7 +481,7 @@ abstract class NodeContainer extends Node {
     final Node exactClone = node.clone();
     // if has no parent, them we can ignore the [removed] flag
     final bool removed = node.owner == null ? true : node.unlink();
-    if (!removed) {
+    if (!removed && node.owner != null) {
       throw StateError(
         'The node founded at $index '
         'couldn\'t be removed in $runtimeType:$id',
@@ -533,8 +533,8 @@ abstract class NodeContainer extends Node {
     final Node node = elementAt(index);
     // it just exists for events
     final Node exactClone = node.clone();
-    final bool removed = node.unlink();
-    if (!removed) {
+    final bool removed = node.owner == null ? true : node.unlink();
+    if (!removed && node.owner != null) {
       throw StateError(
         'The node founded at $index '
         'couldn\'t be removed in $runtimeType:$id',

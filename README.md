@@ -1,152 +1,219 @@
 # 🗃️ Novident Nodes
 
-> [!WARNING]
-> This is a library just for internal uses of Novident application 
-> and the packages related with the app. 
->
-> This package can change constantly and may even have drastic breaking changes.
->
-> Please, ensure that you're not using this package, since the values 
-> into it wont work for other packages than Novident packages.
+A Flutter/Dart package for building and manipulating hierarchical tree structures
+with strict ownership rules, movement validation, and change notification.
 
-The nodes within this package have a specific behavior, and they are capable of updating themselves internally without having to do so themselves.
+## Installation
 
-> [!NOTE]
-> This doesn't mean we have to perform certain validations, as some errors could occur.
-
-## What's Node?
-
-A `Node` is the fundamental building block of a hierarchical tree structure, designed to represent parent-child relationships with strict ownership rules and movement validation. It forms the core architecture for systems requiring nested data organization (e.g., file systems, UI components, scene graphs).
-
-### Key features
-
-- **General Change Notification**: Implements observer pattern via `NodeNotifier` that's an extension of `ChangeNotifier`.
-- **Specific changes notifications**: Implements observer pattern for specific changes using `attachNotifier`. 
-- **Tree Traversal**: Supports visitor pattern with `visitAllNodes()`, `collectNodes()`.
-- **Cloning**: `cloneWithNewLevel()` and `clone()` for hierarchy-aware duplication.
-
-## Notifying changes 
-
-When you want to update the state of a `Node`, you can use the `notify()` or `notify(propagate: true)` method.
-
-* `propagate`: determines if the `Node` will notify its parent `Node` about its changes.
-
-For example, when using **Drag and Drop** features, you will need to update all Nodes up to the main `Node` that contains your node, since moving nodes requires removing and inserting them in different positions and under different parents:
-
-```dart
-// ... perform your operations here
-// first, notify the root that this Node has changed
-oldParentOfNode.notify(propagate: true);
-// then, notify the root that this Node has changed too 
-// and contains the new node
-newParentOfNode.notify(propagate: true);
+```yaml
+dependencies:
+  novident_nodes: <latest>
 ```
 
-However, if you only want to update a specific part that doesn't require updating multiple Nodes simultaneously, you can simply use: 
+## Quick Start
+
+_These are just examples, default implementations for node are NOT provided by the library._ 
 
 ```dart
-yourNode.notify();
-```
+import 'package:novident_nodes/novident_nodes.dart';
 
-## Listening specific changes using internal notifiers
+// Create a tree
+final root = DirectoryNode(
+  details: NodeDetails.zero(),
+  children: [
+    FileNode(details: NodeDetails.byId(id: 'readme', level: 0),
+             content: '# Hello', name: 'README.md'),
+    DirectoryNode(details: NodeDetails.byId(id: 'src', level: 0),
+                  children: [], name: 'src'),
+  ],
+  name: 'project',
+);
 
-The notifiers system in `NodeContainer` provides a mechanism to observe and react to changes in the node structure and its descendants. 
-
-This system is a bit more accurate than the one used by `ChangeNotifier`, because we provide changes of a specific type that can be more useful, since depending on the change, the information can be very useful.
-
-An example of this is `NodeMoveChange`, which tells us the position where the node will be inserted (`index`), the node itself (`newState`), its previous state (before the change: `oldState`), where it came from (its previous owner: `from`), and where it will be inserted (its new owner: `to`).
-
-### Usage Considerations
-
-* **Hierarchy:** Notifiers can operate on a single node or its entire child hierarchy (it's defined when you use `attachToChildren`).
-* **Performance:** Change propagation through many nodes may impact performance.
-* **Memory Management:** It's important to unregister callbacks when no longer needed to prevent memory leaks.
-
-```dart
-final container = NodeContainer(children: [], details: ...);
-
-// Definir un callback
-void handleChange(NodeChange change) {
-  if(change is NodeClear) {
-    // ... for when the children node are cleaned
+// Listen for changes
+root.attachListener((change) {
+  if (change is NodeMoveChange) {
+    print('Moved to ${change.to.id} at index ${change.index}');
   }
-  if(change is NodeDeletion) {
-    // ... for when a Node is removed from it's owner 
-  }
-  if(change is NodeInsertion) {
-    // ... for when a Node is added/inserted to a owner 
-  }
-  if(change is NodeMoveChange) {
-    // ... usually used when a node
-    // from an owner is inserted into another
-    // one
-  }
-  if(change is NodeUpdate) {
-    // ... for when a Node is updated into it's owner
-  }
-}
+});
 
-// attach your notifier 
-// you can also attach automatically this callback to it's children too
-node.attachNotifier(handleChange, attachToChildren: false);
-
-// you can also manually add a change or custom change using:
-// container.onChange(SomeNodeChange());
-
-// If you want to remove a notifier, you can use:
-container.detachNotifier(handleChange);
-
-// If you prefer you can:
-//
-// Dispose the node (Make it and its descendants unusable)
-container.dispose();
-// Or
-//
-// Just remove all/specific notifiers
-container.detachNotifiers(detachChildren: true, excludeFromRemove: [callbacksThatWeNeedYet()]);
-```
-
-## Moving Nodes
-
-Before moving a node in your hierarchy, you can use `Node.canMoveTo()` to validate the operation. 
-
-This method performs critical safety checks to prevent:
-
-- **Circular references** (e.g., moving a parent into its own child)
-- **Invalid targets** (non-containers when `inside = true`)
-- **Hierarchy violations** (exceeding depth limits, invalid ownership)
-
-### Usage Example:
-
-```dart
+// Validate and move
 if (Node.canMoveTo(
-  node: sourceNode,
-  target: targetNode,
-  // Determines whether to check if a child is 
-  // attempting to reinsert itself into its parent
-  inside: true,    
-  // Usually, put this to true, when sourceNode owner is the same
-  // node that the targetNode (since, this usually happens when you 
-  // will swap the position between two nodes that are in the same owner)
-  isSwapMove: true, 
+  node: root.first,
+  target: root.last as NodeContainer,
+  position: DropPosition.inside,
 )) {
-  // Safe to proceed with move operation
-  Node.moveTo(node: sourceNode, newOwner: targetNode);
+  Node.moveTo(node: root.first, newOwner: root.last as NodeContainer);
 }
 ```
 
-## We recommend following these practices when using **Novident Nodes** package: 
+## Core Concepts
 
-1. Always validate with `canMoveTo()` before `moveTo()`.
-2. Use `notify(propagate: true)` only when you need update different parts of the Tree at the same time.
-3. Prefer `jumpToParent()` over manual owner traversal.
-3. Dispose your nodes to prevent memory leaks using `dispose()`.
+### `Node` (abstract)
 
-## Packages that uses **Novident Nodes** package:
+The base class for all tree elements. Extends `ChangeNotifier` and provides:
 
-- **[Novident-corkboard](https://github.com/Novident/novident-corkboard):** Nodes are used to display nodes in different ways in a customized way, such as creating index cards that can have a defined shape, or a defined point on the screen, that's also called **FreeForm** corkboard, which allows us to move these cards to any position we want in an infinite canvas view.
+| Capability | Methods |
+|-----------|---------|
+| Identity | `id`, `level`, `childrenLevel`, `isAtRootLevel` |
+| Ownership | `owner`, `index`, `jumpToParent()` |
+| Navigation | `nextSibling`, `previousSibling`, `findNodePath()` |
+| Lifecycle | `unlink()`, `notify()`, `dispose()` |
+| Cloning | `clone()`, `cloneWithNewLevel()`, `copyWith()` |
+| Validation | `canMoveTo()` |
+| Movement | `verticalMove()`, `moveTo()` |
+| Re-depth | `redepthDescendants()` |
 
-- **[Novident-tree-view](https://github.com/Novident/novident-tree-view):** Nodes are used to define where and how nodes will be displayed in a widget tree. It's quite similar to **TreeSliverView**, but this implementation is more tailored to work with Novident standards.
+Implementations must override: `copyWith`, `cloneWithNewLevel`, `clone`, `toJson`, `==`, `hashCode`.
 
-For now, these will be the most common uses. In the long term, the definition of these nodes may change, depending on Novident's needs and the feature being built.
+### `NodeContainer` (abstract)
 
+Extends `Node` to manage child collections. Adds:
+
+| Capability | Methods |
+|-----------|---------|
+| Children | `add()`, `insert()`, `remove()`, `removeAt()`, `clear()` |
+| Movement | `moveNode()`, `moveNodeById()` |
+| Updates | `update()`, `updateWhere()`, `updateAt()`, `operator []` / `[]=` |
+| Search | `where()`, `whereDeep()`, `atPath()`, `visitAllNodes()`, `collectNodes()` |
+| Listeners | `attachListener()`, `detachListener()`, `detachListeners()` |
+
+### `DropPosition` (enum)
+
+Used by `canMoveTo()` to specify the visual drop zone:
+
+```dart
+enum DropPosition { above, inside, below }
+```
+
+| Zone | Behavior | Adjacent no-op check |
+|------|----------|---------------------|
+| `above` | Insert before target | Blocked if node is already immediately above |
+| `inside` | Insert as child of target | Blocked if same parent + same landing position |
+| `below` | Insert after target | Blocked if node is already immediately below |
+
+### `NodeChange` subclasses
+
+| Type | Triggered by | Key fields |
+|------|-------------|------------|
+| `NodeInsertion` | `add()`, `insert()` | `to`, `from`, `index` |
+| `NodeDeletion` | `remove()`, `removeAt()` | `originalPosition`, `sourceOwner` |
+| `NodeMoveChange` | `moveTo()`, `moveNode()` | `to`, `from`, `index`, `newState`, `oldState` |
+| `NodeUpdate` | `update()`, `updateAt()`, `[]=` | `newState`, `oldState` |
+| `NodeClear` | `clear()` | `newState`, `oldState` |
+
+## Usage Guide
+
+### Building a Tree
+
+```dart
+final root = DirectoryNode(
+  details: NodeDetails.zero(),
+  children: [
+    DirectoryNode(
+      details: NodeDetails.byId(id: 'docs', level: 0),
+      children: [
+        FileNode(details: NodeDetails.byId(id: 'api', level: 0),
+                 content: '', name: 'api.md'),
+      ],
+      name: 'docs',
+    ),
+  ],
+  name: 'root',
+);
+
+// Nodes auto-assign ownership and recalculate depth levels on construction.
+print(root.first.level);  // 1
+print(root.first.first.level);  // 2
+```
+
+### Listening for Changes
+
+```dart
+final container = DirectoryNode(
+  details: NodeDetails.zero(), children: [], name: 'watched',
+);
+
+container.attachListener((NodeChange change) => switch (change) {
+  NodeInsertion(:final to, :final index) =>
+    print('Inserted into ${to.id} at $index'),
+  NodeDeletion(:final originalPosition) =>
+    print('Removed from position $originalPosition'),
+  NodeMoveChange(:final to, :final from, :final index) =>
+    print('Moved from ${from?.id} to ${to.id} at $index'),
+  NodeUpdate(:final newState) =>
+    print('Updated to ${newState.id}'),
+  NodeClear() =>
+    print('All children cleared'),
+  _ => null,
+});
+
+// Detach when done
+container.detachListener(myCallback);
+// Or detach everything
+container.detachListeners(detachChildren: true);
+// Or dispose the whole subtree
+container.dispose();
+```
+
+### Moving Nodes
+
+Use `canMoveTo()` before any move operation:
+
+```dart
+// Move inside another container
+if (Node.canMoveTo(node: leaf, target: folder, position: DropPosition.inside)) {
+  Node.moveTo(node: leaf, newOwner: folder);
+}
+
+// Reorder within the same parent
+if (Node.canMoveTo(node: leaf, target: sibling, position: DropPosition.above)) {
+  // leaf will be placed before sibling in their shared parent
+}
+
+// Same-parent reorder to a specific index
+if (Node.canMoveTo(
+  node: leaf, target: parent,
+  position: DropPosition.inside, insertIndex: 0,
+)) {
+  Node.moveTo(node: leaf, newOwner: parent, index: 0);
+}
+
+// Depth limit
+if (Node.canMoveTo(
+  node: leaf, target: deepFolder,
+  position: DropPosition.inside, maxDepthLevel: 3,
+)) { /* safe */ }
+```
+
+### Traversing the Tree
+
+```dart
+// Find by path
+final node = root.atPath([0, 1]);  // first child → second child
+
+// Find by predicate
+final found = root.visitAllNodes(
+  shouldGetNode: (n) => n.id == 'api',
+);
+
+// Collect all matching nodes
+final allFiles = root.collectNodes(
+  shouldGetNode: (n) => n is FileNode,
+  deep: true,
+);
+
+// Get a node's full path
+print(node.findNodePath());  // [0, 1]
+```
+
+## Best Practices
+
+1. **Validate before moving**: Always call `canMoveTo()` before `moveTo()` / `moveNode()`.
+2. **Propagate notifications sparingly**: Use `notify(propagate: true)` only when multiple tree levels need simultaneous updates (e.g., drag-and-drop).
+3. **Use `jumpToParent()`** instead of manual owner traversal — it handles null owners and stop conditions safely.
+4. **Dispose unused subtrees**: Call `dispose()` to detach all listeners and prevent memory leaks.
+5. **Provide `insertIndex` for same-parent reorders**: Without it, `canMoveTo` conservatively blocks re-insertion into the current parent.
+
+## Ecosystem
+
+- **[novident-tree-view](https://github.com/Novident/novident-tree-view):** Widget tree view for rendering hierarchical node structures, similar to TreeSliverView but tailored to Novident standards with full drag-and-drop support.

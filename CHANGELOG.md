@@ -1,3 +1,26 @@
+## 1.2.1
+
+* Feat(breaking changes): replaced `inside` (bool) with `position`
+  (`DropPosition?`) in `Node.canMoveTo`. `DropPosition.above` inserts
+  before the target, `DropPosition.inside` inserts as a child, and
+  `DropPosition.below` inserts after. When null, only structural checks
+  run — backward compatible with the old `inside: true` default.
+* Feat(breaking changes): removed deprecated `isSwapMove` parameter from
+  `canMoveTo`. The `position` + `insertIndex` API replaces it fully.
+* Feat: `DropPosition` enum with direction-aware adjacent no-op detection.
+  `above`/`below` detect no-ops using only the position and target index
+  (no `insertIndex` needed). `inside` with same parent requires `insertIndex`
+  for exact position validation; without it, re-insertion is conservatively
+  blocked.
+* Feat: `insertIndex` in `canMoveTo` is now optional. It is only required
+  for `inside` + same-parent reorder validation. `above`/`below` adjacent
+  checks work without it.
+* Fix: `moveTo`, `moveNode`, and `moveNodeById` no longer throw a `StateError`
+  when `unlink` fails due to a race condition (e.g. double-invocation during
+  drag-and-drop). If the node is already detached, the operation proceeds.
+* Chore(test): 24 total tests covering `moveNode`, `moveNodeById`, `canMoveTo`
+  constraints, position-aware no-ops, adjacent moves, and depth limits.
+
 ## 1.2.0
 
 * Feat(breaking changes): renamed `attachNotifier` → `attachListener` for consistency with the new `ChangeEventCallback` typedef.

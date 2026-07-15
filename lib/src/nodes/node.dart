@@ -2,6 +2,18 @@ import 'package:flutter/rendering.dart';
 import 'package:meta/meta.dart';
 import 'package:novident_nodes/novident_nodes.dart';
 
+/// The visual drop zone when a node is dragged over a target.
+enum DropPosition {
+  /// Dropped above the target widget → insert before target.
+  above,
+
+  /// Dropped on the center of the target widget → insert inside target.
+  inside,
+
+  /// Dropped below the target widget → insert after target.
+  below,
+}
+
 /// Abstract base class representing a node in a hierarchical tree structure.
 ///
 /// This class combines notification capabilities ([NodeNotifier]), visitor pattern
@@ -66,43 +78,36 @@ abstract class Node extends NodeNotifier
   /// Validates if a node can be moved to a target location in the hierarchy.
   ///
   /// [node]: The node to move.
-  /// [target]: The destination node. When [inside] is true, [target] must be
-  ///   a [NodeContainer]; when [inside] is false, [target] is the reference
-  ///   node for the adjacent position.
-  /// [inside]: Whether to move [node] inside [target] (true) or adjacent to
-  ///   it (false), placing it in [target]'s owner at the same level.
-  /// [insertIndex]: The exact insertion index within the destination container
-  ///   (when [inside]=true) or the desired position adjacent to [target]
-  ///   (when [inside]=false). When null, appends to the end. The index refers
-  ///   to the position *before* [node] is removed from its current owner.
-  /// [isSwapMove]: When true, bypasses the direct-ancestor re-insertion check
-  ///   (used when two nodes swap positions within the same owner).
-  /// [maxDepthLevel]: Optional absolute depth limit. Nodes cannot be placed
-  ///   deeper than this level (1-indexed, where 0 is root).
+  /// [target]: The destination node.
+  /// [position]: The drop zone — [DropPosition.above] inserts before
+  ///   [target], [DropPosition.inside] inserts as a child of [target], and
+  ///   [DropPosition.below] inserts after [target]. When null, only
+  ///   structural checks run.
+  /// [insertIndex]: Optional exact insertion index (before removal) within
+  ///   the destination container. Required when [position] is [DropPosition.inside]
+  ///   and you need to validate re-insertion into a parent at a specific
+  ///   position. When null, [DropPosition.inside] defaults to appending to
+  ///   the target's children.
+  /// [maxDepthLevel]: Optional absolute depth limit.
   static bool canMoveTo({
     required Node node,
     required Node target,
-    bool inside = true,
+    DropPosition? position,
     int? insertIndex,
-    @Deprecated(
-      'isSwapMove is not a required parameter now. It is not used and will be removed in future releases',
-    )
-    bool isSwapMove = false,
     int? maxDepthLevel,
   }) {
+    final bool inside = position == null || position == DropPosition.inside;
+
     // 1. Self-move prevention
     if (node.id == target.id) return false;
 
     // 2. insertIndex bounds
     if (insertIndex != null && insertIndex < 0) return false;
 
-    // 3. Target must have an owner when positioning adjacent (inside=false)
-    //    since we need to insert into target.owner's children list.
-    if (!inside && target.owner == null) return false;
+    // 3. Target owner for above/below
+    if (position != null && !inside && target.owner == null) return false;
 
-    // 4. Circular reference: prevent moving a container into its own subtree.
-    //    Guard: only containers can be ancestors, and target needs an owner
-    //    chain for jumpToParent to traverse safely.
+    // 4. Circular reference
     if (node is NodeContainer) {
       final bool isOwnDescendant =
           target.jumpToParent(stopAt: (Node p) => p.id == node.id).id ==
@@ -110,63 +115,38 @@ abstract class Node extends NodeNotifier
       if (isOwnDescendant) return false;
     }
 
-    // 5. Direct ancestor: prevent re-inserting a node into its current parent
-    //    when inside=true (it's already there). Allow when a real position
-    //    change is requested via insertIndex, or when isSwapMove is set.
+    // 5. Type: inside requires container
+    if (inside && target is! NodeContainer) return false;
+
+    // 6. Direct ancestor + no-op detection (requires insertIndex).
+    //    When insertIndex is not provided, conservatively block
+    //    re-insertion into current parent (backward compat).
     final bool isAncestor = node.owner?.id == target.id;
-    if (isAncestor && inside && !isSwapMove) {
-      // If no explicit index or the index doesn't change position → block.
+    if (isAncestor && inside && target is NodeContainer) {
       if (insertIndex == null) return false;
-      // Mirror moveTo logic: removal shrinks length by 1, then >= length = append.
       final int nodeIdx = node.index;
-      final int newLen = (target as NodeContainer).length - 1;
-      final int landPos =
-          insertIndex >= newLen ? newLen : insertIndex;
+      final int newLen = target.length - 1;
+      final int landPos = insertIndex >= newLen ? newLen : insertIndex;
       if (landPos == nodeIdx) return false;
     }
 
-    // 6. Type validation: when inside=true, target must be a container.
-    if (inside && target is! NodeContainer) return false;
-
-    // 7. No-op detection: prevents moves that would leave the node in the
-    //    same effective position after accounting for removal-then-insertion.
-    //    The logic mirrors Node.moveTo: after node.unlink() shrinks the list
-    //    by 1, an insertIndex >= newLength is treated as append.
-    if (!isSwapMove) {
+    // 7. Position-aware adjacent no-op (no insertIndex needed).
+    if (position != null) {
       final int nodeIndex = node.index;
+      final int targetIndex = target.index;
       final bool sameOwner = node.owner?.id == target.owner?.id;
 
-      if (inside && target is NodeContainer && target.id == node.owner?.id) {
-        // Moving within the same owner.
-        final int newLen = target.length - 1; // after removal
-        if (insertIndex == null) {
-          // Appending: the new last position is newLen.
-          if (newLen == nodeIndex) return false;
-        } else {
-          // If insertIndex >= newLen, moveTo treats it as append.
-          final int landPos = insertIndex >= newLen ? newLen : insertIndex;
-          if (landPos == nodeIndex) return false;
+      if (sameOwner) {
+        if (position == DropPosition.above && nodeIndex + 1 == targetIndex) {
+          return false;
         }
-      }
-
-      if (!inside && sameOwner) {
-        final int targetIndex = target.index;
-        if (targetIndex == nodeIndex) return false; // same position
-        if (insertIndex != null) {
-          // Direction-aware: compute landing position after removal.
-          final int newLen = (node.owner as NodeContainer).length - 1;
-          final int landPos = insertIndex >= newLen ? newLen : insertIndex;
-          if (landPos == nodeIndex) return false;
-        } else {
-          // Without explicit index, conservatively block if already adjacent
-          if (nodeIndex + 1 == targetIndex) return false;
-          if (targetIndex + 1 == nodeIndex) return false;
+        if (position == DropPosition.below && targetIndex + 1 == nodeIndex) {
+          return false;
         }
       }
     }
 
-    // 8. Depth limit: the moved node lands at target.level + 1 when
-    //    inside=true. Check that the resulting depth doesn't exceed the cap.
+    // 8. Depth limit.
     if (maxDepthLevel != null && inside) {
       if (target.level + 1 > maxDepthLevel) return false;
     }
@@ -220,11 +200,15 @@ abstract class Node extends NodeNotifier
     final Node exactClone = node.clone();
     final NodeContainer? oldOwner = node.owner;
     final bool removed = node.owner == null ? true : node.unlink();
+    // If unlink failed but the node is already detached from its owner
+    // (e.g. double-invocation race), just clear ownership and proceed.
     if (!removed) {
-      throw StateError(
-        'The node founded at $index '
-        'couldn\'t be removed in ${node.runtimeType}:${node.id}',
-      );
+      if (node.owner != null) {
+        throw StateError(
+          'The node founded at $index '
+          'couldn\'t be removed in ${node.runtimeType}:${node.id}',
+        );
+      }
     }
     index == null || (index >= newOwner.length || index < 0)
         ? newOwner.add(node, shouldNotify: false)
@@ -333,10 +317,10 @@ abstract class Node extends NodeNotifier
   }) {
     if (owner != null) {
       final int effectiveIndex = path ?? index;
-      if (effectiveIndex <= -1) {
+      final Node? node = owner!.elementAtOrNull(effectiveIndex);
+      if (node == null) {
         return false;
       }
-      final Node node = owner!.elementAt(effectiveIndex);
       if (node.id == id) {
         owner!.children.removeAt(effectiveIndex);
         details.owner = null;
