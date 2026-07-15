@@ -100,7 +100,7 @@ void main() {
     if (Node.canMoveTo(
       node: node.first,
       target: node.last,
-      position: DropPosition.inside,
+      inside: true,
     )) {
       moved = Node.moveTo(
           node: node.first, newOwner: node.last.castToContainer, index: 1);

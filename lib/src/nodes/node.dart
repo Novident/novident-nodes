@@ -75,82 +75,52 @@ abstract class Node extends NodeNotifier
     return <int>[...path.reversed];
   }
 
-  /// Validates if a node can be moved to a target location in the hierarchy.
-  ///
-  /// [node]: The node to move.
-  /// [target]: The destination node.
-  /// [position]: The drop zone — [DropPosition.above] inserts before
-  ///   [target], [DropPosition.inside] inserts as a child of [target], and
-  ///   [DropPosition.below] inserts after [target]. When null, only
-  ///   structural checks run.
-  /// [insertIndex]: Optional exact insertion index (before removal) within
-  ///   the destination container. Required when [position] is [DropPosition.inside]
-  ///   and you need to validate re-insertion into a parent at a specific
-  ///   position. When null, [DropPosition.inside] defaults to appending to
-  ///   the target's children.
-  /// [maxDepthLevel]: Optional absolute depth limit.
+  /// Validates if a node can be moved to a target location in the hierarchy
   static bool canMoveTo({
     required Node node,
     required Node target,
-    DropPosition? position,
-    int? insertIndex,
+    bool inside = true,
+    bool isSwapMove = false,
     int? maxDepthLevel,
   }) {
-    final bool inside = position == null || position == DropPosition.inside;
+    // 1. Basic invalid cases
+    if (node.id == target.id) return false; // Can't move to self
 
-    // 1. Self-move prevention
-    if (node.id == target.id) return false;
-
-    // 2. insertIndex bounds
-    if (insertIndex != null && insertIndex < 0) return false;
-
-    // 3. Target owner for above/below
-    if (position != null && !inside && target.owner == null) return false;
-
-    // 4. Circular reference
+    // 2. Prevent moving a container into its own descendants
     if (node is NodeContainer) {
       final bool isOwnDescendant =
           target.jumpToParent(stopAt: (Node p) => p.id == node.id).id ==
               node.id;
+
       if (isOwnDescendant) return false;
     }
 
-    // 5. Type: inside requires container
-    if (inside && target is! NodeContainer) return false;
-
-    // 6. Direct ancestor + no-op detection (requires insertIndex).
-    //    When insertIndex is not provided, conservatively block
-    //    re-insertion into current parent (backward compat).
+    // 3. Check if target is a direct ancestor of the node
     final bool isAncestor = node.owner?.id == target.id;
-    if (isAncestor && inside && target is NodeContainer) {
-      if (insertIndex == null) return false;
-      final int nodeIdx = node.index;
-      final int newLen = target.length - 1;
-      final int landPos = insertIndex >= newLen ? newLen : insertIndex;
-      if (landPos == nodeIdx) return false;
+
+    // Is the descendant node is trying to move into its ancestor
+    //
+    // When [isSwapMove] is true, means that we are swapping the positions
+    // between two nodes into a same node owner (so, we don't need to
+    // make this check)
+    if (isAncestor && inside && !isSwapMove) {
+      // Already a direct child of target
+      return false;
     }
 
-    // 7. Position-aware adjacent no-op (no insertIndex needed).
-    if (position != null) {
-      final int nodeIndex = node.index;
-      final int targetIndex = target.index;
-      final bool sameOwner = node.owner?.id == target.owner?.id;
+    // 4. Type-specific validation
+    if (inside && target is! NodeContainer) {
+      // Can only move to containers (unless special cases apply)
+      return false;
+    }
 
-      if (sameOwner) {
-        if (position == DropPosition.above && nodeIndex + 1 == targetIndex) {
-          return false;
-        }
-        if (position == DropPosition.below && targetIndex + 1 == nodeIndex) {
-          return false;
-        }
+    // 5. Level validation (optional - if you have hierarchy depth limits)
+    if (maxDepthLevel != null && inside) {
+      if (target.level >= maxDepthLevel) {
+        // Prevent moving too deep in the hierarchy
+        return false;
       }
     }
-
-    // 8. Depth limit.
-    if (maxDepthLevel != null && inside) {
-      if (target.level + 1 > maxDepthLevel) return false;
-    }
-
     return true;
   }
 

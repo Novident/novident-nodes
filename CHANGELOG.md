@@ -1,3 +1,14 @@
+## 1.2.2
+
+* Revert: `canMoveTo` restored to its original API with `inside` (bool) and
+  `isSwapMove` parameters. The `DropPosition`/`position` API introduced in
+  1.2.1 was over-engineered and caused more edge cases than it solved.
+  Adjacent move validation will be handled at the drag-and-drop layer.
+* Fix: `moveTo`, `moveNode`, and `moveNodeById` no longer throw a `StateError`
+  when `unlink` fails due to a race condition (e.g. double-invocation during
+  drag-and-drop). If the node is already detached, the operation proceeds.
+* Chore(test): removed DropPosition and position-aware tests.
+
 ## 1.2.1
 
 * Feat(breaking changes): replaced `inside` (bool) with `position`

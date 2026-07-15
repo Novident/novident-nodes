@@ -40,7 +40,7 @@ root.attachListener((change) {
 if (Node.canMoveTo(
   node: root.first,
   target: root.last as NodeContainer,
-  position: DropPosition.inside,
+  inside: true,
 )) {
   Node.moveTo(node: root.first, newOwner: root.last as NodeContainer);
 }
@@ -77,19 +77,6 @@ Extends `Node` to manage child collections. Adds:
 | Search | `where()`, `whereDeep()`, `atPath()`, `visitAllNodes()`, `collectNodes()` |
 | Listeners | `attachListener()`, `detachListener()`, `detachListeners()` |
 
-### `DropPosition` (enum)
-
-Used by `canMoveTo()` to specify the visual drop zone:
-
-```dart
-enum DropPosition { above, inside, below }
-```
-
-| Zone | Behavior | Adjacent no-op check |
-|------|----------|---------------------|
-| `above` | Insert before target | Blocked if node is already immediately above |
-| `inside` | Insert as child of target | Blocked if same parent + same landing position |
-| `below` | Insert after target | Blocked if node is already immediately below |
 
 ### `NodeChange` subclasses
 
@@ -161,27 +148,35 @@ Use `canMoveTo()` before any move operation:
 
 ```dart
 // Move inside another container
-if (Node.canMoveTo(node: leaf, target: folder, position: DropPosition.inside)) {
+if (Node.canMoveTo(node: leaf, target: folder, inside: true)) {
   Node.moveTo(node: leaf, newOwner: folder);
 }
 
 // Reorder within the same parent
-if (Node.canMoveTo(node: leaf, target: sibling, position: DropPosition.above)) {
+if (Node.canMoveTo(
+  node: leaf, 
+  target: sibling,
+  inside: false,
+  isSwapMove: true,
+)) {
   // leaf will be placed before sibling in their shared parent
 }
 
 // Same-parent reorder to a specific index
 if (Node.canMoveTo(
-  node: leaf, target: parent,
-  position: DropPosition.inside, insertIndex: 0,
+  node: leaf, 
+  target: parent,
+  isSwapMove: true,
 )) {
   Node.moveTo(node: leaf, newOwner: parent, index: 0);
 }
 
 // Depth limit
 if (Node.canMoveTo(
-  node: leaf, target: deepFolder,
-  position: DropPosition.inside, maxDepthLevel: 3,
+  node: leaf, 
+  target: deepFolder,
+  inside: true, 
+  maxDepthLevel: 3,
 )) { /* safe */ }
 ```
 

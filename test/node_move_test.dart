@@ -356,7 +356,10 @@ void main() {
       // outerDir should NOT be movable into innerDir (its own descendant)
       expect(
         Node.canMoveTo(
-            node: outer, target: inner, position: DropPosition.inside),
+          node: outer,
+          target: inner,
+          inside: true,
+        ),
         isFalse,
       );
     });
@@ -385,7 +388,11 @@ void main() {
 
       // dirNode should NOT be movable INTO leafNode
       expect(
-        Node.canMoveTo(node: dir, target: leaf, position: DropPosition.inside),
+        Node.canMoveTo(
+          node: dir,
+          target: leaf,
+          inside: true,
+        ),
         isFalse,
       );
     });
@@ -405,64 +412,6 @@ void main() {
 
       final NodeContainer dir = _findContainer(root, 'dir');
       expect(Node.canMoveTo(node: dir, target: dir), isFalse);
-    });
-
-    test('should prevent moving adjacent same-level nodes', () {
-      final DirectoryNode root = DirectoryNode(
-        details: NodeDetails.zero(),
-        children: <Node>[
-          FileNode(
-            details: NodeDetails.byId(id: 'node1', level: 0),
-            content: '',
-            name: 'Node 1',
-          ),
-          FileNode(
-            details: NodeDetails.byId(id: 'node2', level: 0),
-            content: '',
-            name: 'Node 2',
-          ),
-        ],
-        name: 'Root',
-      );
-
-      final Node n1 = root.firstWhere((Node n) => n.id == 'node1');
-      final Node n2 = root.firstWhere((Node n) => n.id == 'node2');
-
-      // n1 is above n2 → whenAbove blocked, whenBelow allowed
-      expect(
-        Node.canMoveTo(
-          node: n1,
-          target: n2,
-          position: DropPosition.above,
-        ),
-        isFalse,
-      );
-      expect(
-        Node.canMoveTo(
-          node: n1,
-          target: n2,
-          position: DropPosition.below,
-        ),
-        isTrue,
-      );
-
-      // n2 is below n1 → whenBelow blocked, whenAbove allowed
-      expect(
-        Node.canMoveTo(
-          node: n2,
-          target: n1,
-          position: DropPosition.below,
-        ),
-        isFalse,
-      );
-      expect(
-        Node.canMoveTo(
-          node: n2,
-          target: n1,
-          position: DropPosition.above,
-        ),
-        isTrue,
-      );
     });
 
     test('should allow moving node between different containers', () {
@@ -488,7 +437,10 @@ void main() {
 
       expect(
           Node.canMoveTo(
-              node: leaf, target: target, position: DropPosition.inside),
+            node: leaf,
+            target: target,
+            inside: true,
+          ),
           isTrue);
     });
   });
@@ -530,7 +482,10 @@ void main() {
 
       // Verify can move
       final bool canMove = Node.canMoveTo(
-          node: innerDir, target: firstDir, position: DropPosition.inside);
+        node: innerDir,
+        target: firstDir,
+        inside: true,
+      );
       expect(canMove, isTrue);
 
       // Move innerDir from secondDir to firstDir
@@ -546,196 +501,6 @@ void main() {
       final NodeContainer movedInner = firstDir.first as NodeContainer;
       expect(movedInner.first.id, 'deep_file');
       expect(movedInner.first.level, 3);
-    });
-  });
-
-  group('canMoveTo position-aware', () {
-    test('should detect no-op when appending and node is already last', () {
-      final DirectoryNode root = DirectoryNode(
-        details: NodeDetails.zero(),
-        children: <Node>[
-          FileNode(
-            details: NodeDetails.byId(id: 'a', level: 0),
-            content: '',
-            name: 'A',
-          ),
-          FileNode(
-            details: NodeDetails.byId(id: 'b', level: 0),
-            content: '',
-            name: 'B',
-          ),
-        ],
-        name: 'Root',
-      );
-
-      final Node b = root.firstWhere((Node n) => n.id == 'b');
-
-      // Appending B when it's already last should be blocked
-      expect(
-        Node.canMoveTo(node: b, target: root, position: DropPosition.inside),
-        isFalse,
-      );
-    });
-
-    test('should allow moving to end of same owner via inside', () {
-      final DirectoryNode root = DirectoryNode(
-        details: NodeDetails.zero(),
-        children: <Node>[
-          FileNode(
-            details: NodeDetails.byId(id: 'a', level: 0),
-            content: '',
-            name: 'A',
-          ),
-          FileNode(
-            details: NodeDetails.byId(id: 'b', level: 0),
-            content: '',
-            name: 'B',
-          ),
-          FileNode(
-            details: NodeDetails.byId(id: 'c', level: 0),
-            content: '',
-            name: 'C',
-          ),
-        ],
-        name: 'Root',
-      );
-
-      final Node a = root.firstWhere((Node n) => n.id == 'a');
-
-      // position: inside with insertIndex=3 appends A to end → real move
-      expect(
-        Node.canMoveTo(
-            node: a,
-            target: root,
-            position: DropPosition.inside,
-            insertIndex: 3),
-        isTrue,
-      );
-    });
-
-    test('should allow adjacent move when position differs from current', () {
-      final DirectoryNode root = DirectoryNode(
-        details: NodeDetails.zero(),
-        children: <Node>[
-          FileNode(
-            details: NodeDetails.byId(id: 'a', level: 0),
-            content: '',
-            name: 'A',
-          ),
-          FileNode(
-            details: NodeDetails.byId(id: 'b', level: 0),
-            content: '',
-            name: 'B',
-          ),
-        ],
-        name: 'Root',
-      );
-
-      final Node a = root.firstWhere((Node n) => n.id == 'a');
-      final Node b = root.firstWhere((Node n) => n.id == 'b');
-
-      // A and B are adjacent: [A(0), B(1)]
-      // A whenBelow B → real move (A goes from 0 to 1)
-      expect(
-        Node.canMoveTo(node: a, target: b, position: DropPosition.below),
-        isTrue,
-      );
-
-      // B whenAbove A → real move (B goes from 1 to 0)
-      expect(
-        Node.canMoveTo(node: b, target: a, position: DropPosition.above),
-        isTrue,
-      );
-    });
-
-    test('should block self-move regardless of position', () {
-      final DirectoryNode root = DirectoryNode(
-        details: NodeDetails.zero(),
-        children: <Node>[
-          FileNode(
-            details: NodeDetails.byId(id: 'a', level: 0),
-            content: '',
-            name: 'A',
-          ),
-        ],
-        name: 'Root',
-      );
-
-      final Node a = root.firstWhere((Node n) => n.id == 'a');
-
-      // Self-move is always blocked by check 1
-      expect(
-        Node.canMoveTo(node: a, target: a, position: DropPosition.above),
-        isFalse,
-      );
-    });
-
-    test('should respect maxDepthLevel with off-by-one fix', () {
-      // root(0) → target(1). Moving into target puts node at level 2.
-      // maxDepthLevel=2 means level 2 is allowed, level 3 is not.
-      final DirectoryNode root = DirectoryNode(
-        details: NodeDetails.zero(),
-        children: <Node>[
-          FileNode(
-            details: NodeDetails.byId(id: 'leaf', level: 0),
-            content: '',
-            name: 'Leaf',
-          ),
-          DirectoryNode(
-            details: NodeDetails.byId(id: 'shallow', level: 0),
-            children: <Node>[],
-            name: 'Shallow',
-          ),
-          DirectoryNode(
-            details: NodeDetails.byId(id: 'deep', level: 0),
-            children: <Node>[
-              FileNode(
-                details: NodeDetails.byId(id: 'nested', level: 0),
-                content: '',
-                name: 'Nested',
-              ),
-            ],
-            name: 'Deep',
-          ),
-        ],
-        name: 'Root',
-      );
-
-      final Node leaf = root.firstWhere((Node n) => n.id == 'leaf');
-      final NodeContainer shallow = _findContainer(root, 'shallow');
-      final NodeContainer deep = _findContainer(root, 'deep');
-
-      // shallow is at level 1, moving leaf into it → leaf at level 2.
-      // maxDepthLevel=2 → allowed
-      expect(
-        Node.canMoveTo(
-            node: leaf,
-            target: shallow,
-            position: DropPosition.inside,
-            maxDepthLevel: 2),
-        isTrue,
-      );
-
-      // deep is at level 1, but already has a child at level 2.
-      // Moving leaf into deep → leaf at level 2. Still allowed with maxDepth=2.
-      expect(
-        Node.canMoveTo(
-            node: leaf,
-            target: deep,
-            position: DropPosition.inside,
-            maxDepthLevel: 2),
-        isTrue,
-      );
-
-      // maxDepthLevel=1 → moving into shallow (level 1) puts leaf at level 2 > 1 → blocked
-      expect(
-        Node.canMoveTo(
-            node: leaf,
-            target: shallow,
-            position: DropPosition.inside,
-            maxDepthLevel: 1),
-        isFalse,
-      );
     });
   });
 }
