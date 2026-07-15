@@ -61,15 +61,14 @@ abstract class Node extends NodeNotifier
   List<int> findNodePath() {
     if (this.owner == null) return <int>[];
     final int i = index;
-    if (i == -2) return <int>[];
+    if (i <= -1) return <int>[];
     final List<int> path = <int>[i];
     NodeContainer? owner = this.owner;
-    while (true) {
-      final int? ownerIndex = owner?.index;
-      if (ownerIndex == -2 || ownerIndex == null) break;
-      owner = owner!.owner;
+    while (owner != null) {
+      final int ownerIndex = owner.index;
+      if (ownerIndex <= -1) break;
       path.add(ownerIndex);
-      if (owner == null) break;
+      owner = owner.owner;
     }
 
     return <int>[...path.reversed];
@@ -269,13 +268,23 @@ abstract class Node extends NodeNotifier
   }
 
   /// Returns the index of this node within its parent list.
-  ///
-  /// If there's no owner attached, then it returns -2 when the owner is not defined.
-  int get index => owner == null
-      ? -2
-      : (owner as NodeContainer).indexWhere(
+  int get index {
+    if (details.getCachedValue<int>("index") != null) {
+      final int path = details.getCachedValue<int>("index")!;
+      if (owner?[path].id == id) {
+        return path;
+      }
+    }
+
+    final int path = owner?.indexWhere(
           (Node node) => node.id == id,
-        );
+        ) ??
+        -1;
+    if (path <= -1) return -1;
+
+    details.cacheValue("index", path);
+    return path;
+  }
 
   /// Unlink this [Node] from its parent list
   @mustCallSuper

@@ -14,8 +14,10 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
   /// Optional value associated with this node
   final Object? value;
 
-  /// Private reference to the owning/parent node
+  /// The owning/parent node
   NodeContainer? _owner;
+
+  final Map<String, dynamic> _cache = <String, dynamic>{};
 
   /// Main constructor for creating a [NodeDetails] instance.
   ///
@@ -59,82 +61,6 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
     NodeContainer? owner,
   }) : _owner = owner;
 
-  /// Returns true if this node has no owner/parent
-  bool get hasNotOwner => !hasOwner;
-
-  /// Returns true if this node has an owner/parent
-  bool get hasOwner => owner != null;
-
-  /// Gets the owner/parent node of this node
-  NodeContainer? get owner => _owner;
-
-  /// Generates an unique id for nodes usage
-  static String createNodeId() => IdGenerator.gen(version: 4);
-
-  /// Sets the owner/parent node of this node.
-  void detachOwner() => owner = null;
-
-  /// Only updates if the new owner is different from current.
-  set owner(NodeContainer? node) {
-    if (_owner == node) return;
-    _owner = node;
-  }
-
-  /// Creates a clone of this node with a modified level.
-  ///
-  /// [level]: New level to use (defaults to 0 if not specified)
-  /// Returns a new [NodeDetails] instance with updated level
-  NodeDetails cloneWithNewLevel([int? level]) {
-    level ??= 0;
-    return copyWith(level: level);
-  }
-
-  /// Creates a copy of this node with optional overrides.
-  ///
-  /// [level]: Optional new level value
-  /// [id]: Optional new ID
-  /// [owner]: Optional new owner reference
-  /// [value]: Optional new associated value
-  /// Returns a new [NodeDetails] instance with specified overrides
-  NodeDetails copyWith({
-    int? level,
-    String? id,
-    NodeContainer? owner,
-    Object? value,
-  }) {
-    return NodeDetails.byId(
-      level: level ?? this.level,
-      id: id ?? this.id,
-      value: value ?? this.value,
-      owner: owner ?? this.owner,
-    );
-  }
-
-  /// Factory constructor for creating from JSON data.
-  ///
-  /// [json]: Map containing serialized node data
-  /// Returns a new [NodeDetails] instance reconstructed from JSON
-  factory NodeDetails.fromJson(Map<String, dynamic> json) {
-    return NodeDetails.byId(
-      level: json['level'] as int,
-      value: json['value'] as Object?,
-      id: json['id'] as String,
-      owner: json['owner'] as NodeContainer?,
-    );
-  }
-
-  /// Serializes this node to a JSON-compatible map.
-  ///
-  /// Returns a [Map] containing all node properties
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'level': level,
-      'id': id,
-      'owner': owner?.id,
-      'value': value,
-    };
-  }
-
   /// Factory constructor for creating a base-level node.
   ///
   /// [id]: Optional explicit ID (generates one if not provided)
@@ -174,15 +100,94 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
     );
   }
 
+  /// Returns true if this node has no owner/parent
+  bool get hasNotOwner => !hasOwner;
+
+  /// Returns true if this node has an owner/parent
+  bool get hasOwner => owner != null;
+
+  /// Gets the owner/parent node of this node
+  NodeContainer? get owner => _owner;
+
+  /// Generates an unique id for nodes usage
+  static String createNodeId() => IdGenerator.gen(version: 4);
+
+  T? getCachedValue<T>(String key) => _cache[key] as T?;
+  void cacheValue<T>(String key, T value) => _cache[key] = value;
+
+  /// Sets the owner/parent node of this node.
+  void detachOwner() => owner = null;
+
+  /// Only updates if the new owner is different from current.
+  set owner(NodeContainer? node) {
+    if (_owner == node) return;
+    _owner = node;
+  }
+
+  /// Creates a clone of this node with a modified level.
+  ///
+  /// [level]: New level to use (defaults to 0 if not specified)
+  /// Returns a new [NodeDetails] instance with updated level
+  NodeDetails cloneWithNewLevel([int? level]) {
+    level ??= 0;
+    return copyWith(level: level);
+  }
+
+  /// Creates a copy of this node with optional overrides.
+  ///
+  /// [level]: Optional new level value
+  /// [id]: Optional new ID
+  /// [owner]: Optional new owner reference
+  /// [value]: Optional new associated value
+  /// Returns a new [NodeDetails] instance with specified overrides
+  NodeDetails copyWith({
+    int? level,
+    String? id,
+    NodeContainer? owner,
+    Object? value,
+  }) {
+    return NodeDetails.byId(
+      level: level ?? this.level,
+      id: id ?? this.id,
+      value: value ?? this.value,
+      owner: owner ?? this.owner,
+    ).._cache.addAll(_cache);
+  }
+
+  /// Factory constructor for creating from JSON data.
+  ///
+  /// [json]: Map containing serialized node data
+  /// Returns a new [NodeDetails] instance reconstructed from JSON
+  factory NodeDetails.fromJson(Map<String, dynamic> json) {
+    return NodeDetails.byId(
+      level: json['level'] as int,
+      value: json['value'] as Object?,
+      id: json['id'] as String,
+      owner: json['owner'] as NodeContainer?,
+    );
+  }
+
+  /// Serializes this node to a JSON-compatible map.
+  ///
+  /// Returns a [Map] containing all node properties
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'level': level,
+      'id': id,
+      'owner': owner?.id,
+      'value': value,
+    };
+  }
+
   /// Returns a string representation of this node.
   ///
   /// Shows truncated ID (first 4 chars), level, value, and owner
   @override
   String toString() {
-    return 'Level: $level, '
+    return '$runtimeType(Level: $level, '
         'ID: ${id.substring(0, id.length < 4 ? id.length : 4)}, '
         'value: $value, '
-        'Owner: $owner';
+        'Owner: $owner)';
   }
 
   /// Generates a hash code based on node properties.
@@ -213,6 +218,6 @@ class NodeDetails implements ClonableMixin<NodeDetails> {
       value: value,
       owner: owner,
       id: id,
-    );
+    ).._cache.addAll(_cache);
   }
 }

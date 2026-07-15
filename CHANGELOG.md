@@ -1,5 +1,7 @@
 ## 1.2.2
 
+* Feat: `index` now cache the value to avoid make a re-calculation every time it's called
+  using `getCachedValue` and `cacheValue` methods in `NodeDetails`
 * Revert: `canMoveTo` restored to its original API with `inside` (bool) and
   `isSwapMove` parameters. The `DropPosition`/`position` API introduced in
   1.2.1 was over-engineered and caused more edge cases than it solved.
