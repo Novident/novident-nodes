@@ -488,6 +488,9 @@ void main() {
       );
       expect(canMove, isTrue);
 
+      expect(firstDir.findNodePath(), equals(<int>[0]));
+      expect(innerDir.findNodePath(), equals(<int>[1, 0]));
+
       // Move innerDir from secondDir to firstDir
       final bool moved = secondDir.moveNode(innerDir, firstDir);
       expect(moved, isTrue);
@@ -499,6 +502,8 @@ void main() {
 
       // Verify innerDir's children are at level 3
       final NodeContainer movedInner = firstDir.first as NodeContainer;
+
+      expect(movedInner.findNodePath(), equals(<int>[0, 0]));
       expect(movedInner.first.id, 'deep_file');
       expect(movedInner.first.level, 3);
     });

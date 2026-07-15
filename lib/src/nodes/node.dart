@@ -174,8 +174,8 @@ abstract class Node extends NodeNotifier
     if (!removed) {
       if (node.owner != null) {
         throw StateError(
-          'The node founded at $index '
-          'couldn\'t be removed in ${node.runtimeType}:${node.id}',
+          'Unlink failed. Node was founded at $index. So moveTo '
+          'couldn\'t do nothing for ${node.runtimeType}:${node.id}',
         );
       }
     }
@@ -187,13 +187,14 @@ abstract class Node extends NodeNotifier
             ? index
             : newOwner.length - 1;
     final Node storedNode = newOwner.elementAt(storedIndex);
+    storedNode.details.cacheValue("index", storedIndex);
     if (storedNode is NodeContainer) {
       storedNode.redepthDescendants(shouldNotify: false);
     }
     final NodeMoveChange change = NodeMoveChange(
       to: newOwner,
       from: oldOwner,
-      index: index ?? newOwner.length - 1,
+      index: storedIndex,
       newState: storedNode,
       oldState: exactClone,
     );
@@ -271,7 +272,7 @@ abstract class Node extends NodeNotifier
   int get index {
     if (details.getCachedValue<int>("index") != null) {
       final int path = details.getCachedValue<int>("index")!;
-      if (owner?[path].id == id) {
+      if (owner != null && id == owner!.elementAtOrNull(path)?.id) {
         return path;
       }
     }

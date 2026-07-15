@@ -327,6 +327,12 @@ abstract class NodeContainer extends Node {
   }
 
   /// Gets the list of direct child nodes.
+  ///
+  /// Ensure that you're NOT using this getter
+  /// to mutate the list or any element inside this
+  /// container. Every method into this implementation
+  /// is designed to make any mutation more easy and
+  /// to work with the other features
   List<Node> get children => _children;
 
   /// Gets the first child node.
@@ -497,6 +503,7 @@ abstract class NodeContainer extends Node {
             ? insertIndex
             : to.length - 1;
     final Node storedNode = to.elementAt(storedIndex);
+    storedNode.details.cacheValue("index", storedIndex);
     if (storedNode is NodeContainer) {
       storedNode.redepthDescendants(shouldNotify: false);
     }
@@ -551,6 +558,7 @@ abstract class NodeContainer extends Node {
             ? insertIndex
             : to.length - 1;
     final Node storedNode = to.elementAt(storedIndex);
+    storedNode.details.cacheValue("index", storedIndex);
     if (storedNode is NodeContainer) {
       storedNode.redepthDescendants(shouldNotify: false);
     }
@@ -594,7 +602,7 @@ abstract class NodeContainer extends Node {
     _children.add(
       element.cloneWithNewLevel(
         childrenLevel,
-      ),
+      )..details.cacheValue("index", length - 1),
     );
     if (shouldNotify) notify(propagate: propagateNotifications);
   }
@@ -626,7 +634,7 @@ abstract class NodeContainer extends Node {
       _children.add(
         child.cloneWithNewLevel(
           childrenLevel,
-        ),
+        )..details.cacheValue("index", lastLength),
       );
       lastLength++;
     }
@@ -650,7 +658,11 @@ abstract class NodeContainer extends Node {
     }
     _children.insert(
       index,
-      element.cloneWithNewLevel(childrenLevel),
+      element.cloneWithNewLevel(childrenLevel)
+        ..details.cacheValue(
+          "index",
+          index,
+        ),
     );
     onChange(
       _decideInsertionOrMove(
@@ -704,7 +716,11 @@ abstract class NodeContainer extends Node {
     bool shouldNotify = true,
     bool propagateNotifications = false,
   }) {
-    final Node value = _children.first;
+    final Node value = _children.first
+      ..details.cacheValue(
+        "index",
+        null,
+      );
     final bool removed = value.unlink(path: 0);
     if (!removed) {
       throw Exception(
@@ -734,7 +750,11 @@ abstract class NodeContainer extends Node {
     bool shouldNotify = true,
     bool propagateNotifications = false,
   }) {
-    final Node value = _children.last;
+    final Node value = _children.last
+      ..details.cacheValue(
+        "index",
+        null,
+      );
     final int lastPosition = _children.length;
     final bool removed = value.unlink(path: lastPosition - 1);
     if (!removed) {
@@ -774,7 +794,12 @@ abstract class NodeContainer extends Node {
       indexAt = i;
       node = _children.elementAt(i);
       if (callback(node)) {
-        node.unlink(path: i);
+        node
+          ..unlink(path: i)
+          ..details.cacheValue(
+            "index",
+            null,
+          );
         break;
       }
       node = null;
@@ -805,7 +830,11 @@ abstract class NodeContainer extends Node {
     bool shouldNotify = true,
     bool propagateNotifications = false,
   }) {
-    final Node value = _children[index];
+    final Node value = _children[index]
+      ..details.cacheValue(
+        "index",
+        null,
+      );
     final bool removed = value.unlink(path: index);
     if (!removed) {
       throw Exception(
@@ -857,7 +886,11 @@ abstract class NodeContainer extends Node {
     if (newNodeState.owner != this) {
       newNodeState.owner = this;
     }
-    _children[index] = newNodeState.cloneWithNewLevel(childrenLevel);
+    _children[index] = newNodeState.cloneWithNewLevel(childrenLevel)
+      ..details.cacheValue(
+        "index",
+        index,
+      );
     if (shouldNotify) {
       notify(propagate: propagateNotifications);
     }
@@ -881,7 +914,11 @@ abstract class NodeContainer extends Node {
     if (newNodeState.owner != this) {
       newNodeState.owner = this;
     }
-    _children[index] = newNodeState.cloneWithNewLevel(childrenLevel);
+    _children[index] = newNodeState.cloneWithNewLevel(childrenLevel)
+      ..details.cacheValue(
+        "index",
+        index,
+      );
     if (shouldNotify) {
       notify(propagate: propagateNotifications);
     }
@@ -904,7 +941,11 @@ abstract class NodeContainer extends Node {
     if (newNodeState.owner != this) {
       newNodeState.owner = this;
     }
-    _children[index] = newNodeState.cloneWithNewLevel(childrenLevel);
+    _children[index] = newNodeState.cloneWithNewLevel(childrenLevel)
+      ..details.cacheValue(
+        "index",
+        index,
+      );
     if (shouldNotify) {
       notify(propagate: propagateNotifications);
     }
@@ -922,7 +963,8 @@ abstract class NodeContainer extends Node {
     if (newNodeState.owner != this) {
       newNodeState.owner = this;
     }
-    _children[index] = newNodeState.cloneWithNewLevel(childrenLevel);
+    _children[index] = newNodeState.cloneWithNewLevel(childrenLevel)
+      ..details.cacheValue("index", index);
     notify(propagate: true);
   }
 

@@ -1,3 +1,9 @@
+## 1.2.3
+
+* Fix: `index` is returning invalid cached values.
+* Fix: `index` is not being updated or invalidated after any type of movement or update in its owner.
+* Chore: added testing the issue.
+
 ## 1.2.2
 
 * Feat: `index` now cache the value to avoid make a re-calculation every time it's called

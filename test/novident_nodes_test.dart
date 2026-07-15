@@ -71,7 +71,7 @@ void main() {
   });
 
   test('shouldn\'t insert a node into a leaf node', () {
-    final DirectoryNode node = DirectoryNode(
+    final DirectoryNode root = DirectoryNode(
       details: NodeDetails.zero(),
       children: <Node>[
         DirectoryNode(
@@ -94,16 +94,17 @@ void main() {
       name: 'Dir',
     );
     bool moved = false;
+    expect(root.first.findNodePath(), <int>[0]);
     // should maintain moved in false
     // since we can't move a node inside
     // a leaf
     if (Node.canMoveTo(
-      node: node.first,
-      target: node.last,
+      node: root.first,
+      target: root.last,
       inside: true,
     )) {
       moved = Node.moveTo(
-          node: node.first, newOwner: node.last.castToContainer, index: 1);
+          node: root.first, newOwner: root.last.castToContainer, index: 1);
     }
     expect(moved, isFalse);
   });
@@ -143,7 +144,7 @@ void main() {
   });
 
   test('should move first child node into the last child one', () {
-    final DirectoryNode node = DirectoryNode(
+    final DirectoryNode root = DirectoryNode(
       details: NodeDetails.zero(),
       children: <Node>[
         // this node
@@ -167,26 +168,58 @@ void main() {
       ],
       name: 'Dir',
     );
-    expect(node.last.id, 'test 2');
-    expect(node.last.castToDir.first.castToFile.name, 'File 2');
-    expect(node.last.castToDir.length, 1);
-    final NodeContainer parent = node.elementAt(1) as NodeContainer;
-    if (Node.canMoveTo(node: node.first, target: parent)) {
-      final bool moved = Node.moveTo(
-        node: node.first,
+    expect(root.first.findNodePath(), <int>[0]);
+    expect(root.first.id, equals('test'));
+    expect(root.last.castToContainer.first.findNodePath(), <int>[1, 0]);
+    expect(root.last.castToContainer.id, equals('test 2'));
+    expect(root.last.id, 'test 2');
+    expect(root.last.castToDir.first.castToFile.name, 'File 2');
+    expect(root.last.castToDir.length, 1);
+    NodeContainer parent = root.last.castToContainer;
+    bool moved = false;
+    if (Node.canMoveTo(node: root.first, target: parent)) {
+      moved = Node.moveTo(
+        node: root.first,
         newOwner: parent,
       );
       expect(moved, isTrue);
     }
+    expect(root.first.id, equals('test 2'));
+    expect(root.first.castToContainer.first.id, equals('test 3'));
+    expect(root.first.castToContainer.first.findNodePath(), <int>[0, 0]);
+    expect(root.first.castToContainer.last.id, equals('test'));
+    expect(root.first.castToContainer.last.findNodePath(), <int>[0, 1]);
     // root checks
-    expect(node.first.id, 'test 2');
-    expect(node.castToDir.length, 1);
+    expect(root.first.id, 'test 2');
+    expect(root.castToDir.length, 1);
     // children checks
-    expect(node.first.castToDir.length, 2);
-    expect(node.first.castToDir.first.id, 'test 3');
-    expect(node.first.castToDir.last.id, 'test');
-    expect(node.first.castToDir.last.castToFile.name, 'File 1');
-    expect(node.first.castToDir.last.level, 2);
+    expect(root.first.castToDir.length, 2);
+    expect(root.first.castToDir.first.id, 'test 3');
+    expect(root.first.castToDir.last.id, 'test');
+    expect(root.first.castToDir.last.castToFile.name, 'File 1');
+    expect(root.first.castToDir.last.level, 2);
+
+    parent = root.last.castToContainer;
+    moved = false;
+    if (Node.canMoveTo(
+      node: parent.first,
+      target: parent,
+      inside: true,
+      // there are too many ways to know if a movement is a swap one
+      isSwapMove: parent.first.nextSibling?.id == parent.last.id,
+    )) {
+      moved = Node.moveTo(
+        node: parent.first,
+        newOwner: parent,
+        index: 1,
+      );
+    }
+    expect(moved, isTrue);
+    expect(root.first.id, equals('test 2'));
+    expect(root.first.castToContainer.first.id, equals('test'));
+    expect(root.first.castToContainer.first.findNodePath(), <int>[0, 0]);
+    expect(root.first.castToContainer.last.id, equals('test 3'));
+    expect(root.first.castToContainer.last.findNodePath(), <int>[0, 1]);
   });
 
   test('should update node into correctly', () {
