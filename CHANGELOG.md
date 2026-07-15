@@ -1,3 +1,7 @@
+## 1.2.4
+
+* Fix: `moveTo` cannot `unlink` correctly a node from its `owner`. Now it checks if the element really exist, and use fallbacks if required, to ensure deletion.
+
 ## 1.2.3
 
 * Fix: `index` is returning invalid cached values.

@@ -172,9 +172,9 @@ abstract class Node extends NodeNotifier
     // If unlink failed but the node is already detached from its owner
     // (e.g. double-invocation race), just clear ownership and proceed.
     if (!removed) {
-      if (node.owner != null) {
+      if (node.owner != null && node.owner!.exist(node.id)) {
         throw StateError(
-          'Unlink failed. Node was founded at $index. So moveTo '
+          'Unlink failed. Node was founded at ${index ?? node.index}. So moveTo '
           'couldn\'t do nothing for ${node.runtimeType}:${node.id}',
         );
       }
@@ -297,10 +297,12 @@ abstract class Node extends NodeNotifier
   }) {
     if (owner != null) {
       final int effectiveIndex = path ?? index;
-      final Node? node = owner!.elementAtOrNull(effectiveIndex);
-      if (node == null) {
+      Node? node = owner!.elementAtOrNull(effectiveIndex);
+      if (node == null && !owner!.exist(id)) {
         return false;
       }
+      // fallback
+      node ??= owner!.firstWhere((Node e) => e.id == id);
       if (node.id == id) {
         owner!.children.removeAt(effectiveIndex);
         details.owner = null;
@@ -310,10 +312,8 @@ abstract class Node extends NodeNotifier
               originalPosition: effectiveIndex + 1,
               inNode: owner!.clone(),
               sourceOwner: owner!.jumpToParent().clone(),
-              newState: this,
-              oldState: copyWith(
-                details: details.copyWith(owner: owner),
-              ),
+              newState: clone(),
+              oldState: copyWith(details: details.copyWith(owner: owner)),
             ),
           );
         }
